@@ -1,9 +1,11 @@
 node_modules
+resources
 
 # Output
 .output
 .vercel
 .netlify
+/drizzle
 .wrangler
 /.svelte-kit
 /build
