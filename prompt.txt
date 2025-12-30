@@ -1,0 +1,891 @@
+COMPLETE SVELTEKIT E-COMMERCE PLATFORM DEVELOPMENT
+
+You are tasked with transforming an existing SvelteKit project into a world-class, personalized e-commerce platform with a comprehensive admin dashboard. This is a production-ready system that must handle real customer transactions, inventory management, and personalized shopping experiences.
+
+PROJECT OVERVIEW
+
+Create a fully functional e-commerce platform with customer-facing store and administrative backend, leveraging the existing database schema and authentication system.
+
+EXISTING DATABASE SCHEMA
+
+The project uses Drizzle ORM with PostgreSQL and includes the following tables:
+
+CORE TABLES (Already Implemented):
+- user: User accounts with role-based access, email verification, and ban management
+- session: User sessions with IP tracking and impersonation support
+- account: OAuth and credential authentication data
+- verification: Email and identity verification tokens
+
+E-COMMERCE TABLES (Need Implementation):
+- account (1 record): Extended user account settings
+- address (0 records): User shipping/billing addresses
+- cart (0 records): Shopping cart management
+- cart_item (0 records): Individual cart items
+- category (2 records): Product categorization
+- file (0 records): Media file management
+- order (0 records): Customer orders
+- order_item (0 records): Items within orders
+- product (0 records): Product catalog
+- product_image (0 records): Product photos
+- product_size (0 records): Size variations
+- product_tag (0 records): Product tagging system
+- review (0 records): Customer reviews
+- settings (1 record): Store configuration
+- size (1 record): Available sizes
+- tag (2 records): Tag definitions
+
+PHASE 1: COMPLETE DATABASE SCHEMA IMPLEMENTATION
+
+Using Drizzle ORM with PostgreSQL, create the following schema additions to complement the existing user, session, account, and verification tables:
+
+PRODUCT MANAGEMENT SCHEMA
+
+Category system for product organization:
+category: {
+  id: text (primary key, nanoid)
+  name: text (required, unique)
+  slug: text (required, unique)
+  description: text (optional)
+  parentId: text (optional, self-reference for hierarchies)
+  image: text (optional, URL)
+  isActive: boolean (default true)
+  sortOrder: integer (default 0)
+  createdAt: timestamp (default now)
+  updatedAt: timestamp (default now)
+}
+
+Main product catalog:
+product: {
+  id: text (primary key, nanoid)
+  name: text (required)
+  slug: text (required, unique)
+  description: text (required)
+  shortDescription: text (optional)
+  categoryId: text (foreign key to category)
+  basePrice: decimal (required, precision 10, scale 2)
+  compareAtPrice: decimal (optional, precision 10, scale 2)
+  sku: text (required, unique)
+  barcode: text (optional)
+  stockQuantity: integer (required, default 0)
+  lowStockThreshold: integer (default 10)
+  isActive: boolean (default true)
+  isFeatured: boolean (default false)
+  weight: decimal (optional, in kg)
+  dimensions: json (optional, {length, width, height})
+  metaTitle: text (optional, SEO)
+  metaDescription: text (optional, SEO)
+  tags: text array (optional)
+  customFields: json (optional)
+  createdAt: timestamp (default now)
+  updatedAt: timestamp (default now)
+}
+
+Product images with order management:
+product_image: {
+  id: text (primary key, nanoid)
+  productId: text (foreign key to product, cascade delete)
+  url: text (required)
+  altText: text (optional)
+  sortOrder: integer (default 0)
+  isPrimary: boolean (default false)
+  createdAt: timestamp (default now)
+}
+
+Size variations (S, M, L, XL, etc.):
+size: {
+  id: text (primary key, nanoid)
+  name: text (required, unique)
+  abbreviation: text (required)
+  sortOrder: integer (default 0)
+  isActive: boolean (default true)
+}
+
+Product size inventory tracking:
+product_size: {
+  id: text (primary key, nanoid)
+  productId: text (foreign key to product, cascade delete)
+  sizeId: text (foreign key to size)
+  additionalPrice: decimal (default 0, precision 10, scale 2)
+  stockQuantity: integer (required, default 0)
+  sku: text (optional, unique)
+  isAvailable: boolean (default true)
+  unique constraint on (productId, sizeId)
+}
+
+Tagging system for product discovery:
+tag: {
+  id: text (primary key, nanoid)
+  name: text (required, unique)
+  slug: text (required, unique)
+  type: text (optional, e.g., "style", "material", "season")
+  createdAt: timestamp (default now)
+}
+
+Product-tag relationships:
+product_tag: {
+  id: text (primary key, nanoid)
+  productId: text (foreign key to product, cascade delete)
+  tagId: text (foreign key to tag, cascade delete)
+  unique constraint on (productId, tagId)
+}
+
+CUSTOMER SHOPPING SCHEMA
+
+Customer shipping and billing addresses:
+address: {
+  id: text (primary key, nanoid)
+  userId: text (foreign key to user, cascade delete)
+  type: text (required, "shipping" or "billing")
+  isDefault: boolean (default false)
+  fullName: text (required)
+  company: text (optional)
+  addressLine1: text (required)
+  addressLine2: text (optional)
+  city: text (required)
+  state: text (required)
+  postalCode: text (required)
+  country: text (required, default "US")
+  phone: text (required)
+  createdAt: timestamp (default now)
+  updatedAt: timestamp (default now)
+}
+
+Shopping cart management:
+cart: {
+  id: text (primary key, nanoid)
+  userId: text (optional, foreign key to user, cascade delete)
+  sessionId: text (optional, for guest carts)
+  expiresAt: timestamp (optional)
+  createdAt: timestamp (default now)
+  updatedAt: timestamp (default now)
+}
+
+Items in shopping cart:
+cart_item: {
+  id: text (primary key, nanoid)
+  cartId: text (foreign key to cart, cascade delete)
+  productId: text (foreign key to product)
+  productSizeId: text (optional, foreign key to product_size)
+  quantity: integer (required, min 1)
+  priceAtAdd: decimal (required, precision 10, scale 2)
+  createdAt: timestamp (default now)
+  updatedAt: timestamp (default now)
+  unique constraint on (cartId, productId, productSizeId)
+}
+
+ORDER MANAGEMENT SCHEMA
+
+Customer orders:
+order: {
+  id: text (primary key, nanoid)
+  orderNumber: text (required, unique, auto-generated)
+  userId: text (optional, foreign key to user)
+  guestEmail: text (optional, for guest checkouts)
+  status: text (required, enum: "pending", "processing", "shipped", "delivered", "cancelled", "refunded")
+  paymentStatus: text (required, enum: "pending", "paid", "failed", "refunded")
+  paymentMethod: text (optional)
+  paymentIntentId: text (optional, Stripe payment intent)
+  
+  Pricing:
+  subtotal: decimal (required, precision 10, scale 2)
+  tax: decimal (default 0, precision 10, scale 2)
+  shippingCost: decimal (default 0, precision 10, scale 2)
+  discount: decimal (default 0, precision 10, scale 2)
+  total: decimal (required, precision 10, scale 2)
+  
+  Addresses (denormalized for historical record):
+  shippingAddress: json (required)
+  billingAddress: json (required)
+  
+  Tracking:
+  trackingNumber: text (optional)
+  shippedAt: timestamp (optional)
+  deliveredAt: timestamp (optional)
+  
+  Notes:
+  customerNotes: text (optional)
+  adminNotes: text (optional)
+  
+  createdAt: timestamp (default now)
+  updatedAt: timestamp (default now)
+}
+
+Items within orders:
+order_item: {
+  id: text (primary key, nanoid)
+  orderId: text (foreign key to order, cascade delete)
+  productId: text (foreign key to product)
+  productSizeId: text (optional, foreign key to product_size)
+  
+  Snapshot data (prices at time of order):
+  productName: text (required)
+  productSku: text (required)
+  sizeName: text (optional)
+  quantity: integer (required)
+  unitPrice: decimal (required, precision 10, scale 2)
+  totalPrice: decimal (required, precision 10, scale 2)
+  
+  createdAt: timestamp (default now)
+}
+
+REVIEW SYSTEM SCHEMA
+
+Customer product reviews:
+review: {
+  id: text (primary key, nanoid)
+  productId: text (foreign key to product, cascade delete)
+  userId: text (foreign key to user, cascade delete)
+  orderId: text (optional, foreign key to order)
+  rating: integer (required, min 1, max 5)
+  title: text (optional)
+  comment: text (required)
+  isVerifiedPurchase: boolean (default false)
+  isApproved: boolean (default false)
+  helpfulCount: integer (default 0)
+  createdAt: timestamp (default now)
+  updatedAt: timestamp (default now)
+  unique constraint on (productId, userId, orderId)
+}
+
+SYSTEM CONFIGURATION SCHEMA
+
+File/media management:
+file: {
+  id: text (primary key, nanoid)
+  filename: text (required)
+  originalName: text (required)
+  mimeType: text (required)
+  size: integer (required, in bytes)
+  url: text (required)
+  thumbnailUrl: text (optional)
+  uploadedBy: text (foreign key to user)
+  category: text (optional, e.g., "product", "category", "banner")
+  metadata: json (optional)
+  createdAt: timestamp (default now)
+}
+
+Global store settings:
+settings: {
+  id: text (primary key, default "global")
+  storeName: text (required)
+  storeEmail: text (required)
+  storePhone: text (optional)
+  storeAddress: json (optional)
+  currency: text (default "USD")
+  taxRate: decimal (default 0, precision 5, scale 2)
+  shippingRates: json (optional)
+  socialLinks: json (optional)
+  maintenanceMode: boolean (default false)
+  updatedAt: timestamp (default now)
+}
+
+PHASE 2: CUSTOMER-FACING E-COMMERCE STORE
+
+DESIGN REQUIREMENTS
+
+Visual Reference: Use the product grid layout from /templates/search_page.jpeg as the foundation for product display cells.
+
+Product Cell Design (from reference image):
+- Clean card-based layout with subtle shadows
+- High-quality product image with hover zoom effect
+- Product name displayed prominently
+- Price with compare-at-price (strikethrough) if applicable
+- Quick add-to-cart button on hover
+- Favorite/wishlist heart icon
+- Size selector (if applicable) on quick view
+- Responsive grid: 4 columns desktop, 3 tablet, 2 mobile, 1 small mobile
+
+STORE PAGES TO IMPLEMENT
+
+1. Homepage (/):
+- Hero section with promotional banner/carousel
+- Featured products grid (8-12 products)
+- Category showcase with images
+- Trending/new arrivals section
+- Customer testimonials/reviews carousel
+- Newsletter signup
+- Trust badges (secure checkout, free shipping, etc.)
+
+2. Shop/Category Pages (/shop, /category/[slug]):
+- Product grid with filters sidebar
+- Filter by: category, price range, size, color, tags, rating
+- Sort by: featured, newest, price (low-high, high-low), rating, popularity
+- Pagination or infinite scroll
+- Active filters display with clear buttons
+- Results count
+- View toggle: grid/list
+- Breadcrumb navigation
+
+3. Product Detail Page (/product/[slug]):
+- Image gallery with zoom and lightbox
+- Product title, SKU, availability status
+- Star rating with review count
+- Price display (with compare-at-price if on sale)
+- Size selector with stock indicators
+- Quantity selector
+- Add to cart and Buy Now buttons
+- Product description tabs: Description, Specifications, Shipping, Reviews
+- Related products carousel
+- Recently viewed products
+- Social sharing buttons
+
+4. Shopping Cart (/cart):
+- Cart items list with thumbnails
+- Quantity adjustment controls
+- Remove item functionality
+- Size/variant display
+- Price per item and line totals
+- Subtotal, tax, shipping estimate
+- Promo code input
+- Continue shopping link
+- Proceed to checkout button
+- Save for later option
+- Estimated delivery date
+
+5. Checkout (/checkout):
+- Multi-step or single-page checkout
+- Guest checkout option
+- Email input (for order updates)
+- Shipping address form with address validation
+- Billing address (same as shipping checkbox)
+- Shipping method selection with prices
+- Payment method integration (Stripe recommended)
+- Order summary sidebar
+- Apply coupon code
+- Terms and conditions checkbox
+- Place order button with loading state
+- Security badges
+
+6. Order Confirmation (/order/[id]/confirmed):
+- Order number prominently displayed
+- Thank you message
+- Order summary with items
+- Shipping and billing addresses
+- Payment method used
+- Estimated delivery date
+- Continue shopping button
+- Account creation prompt (if guest)
+
+7. Account Pages (/account/*):
+- Dashboard overview
+- Order history with status tracking
+- Order detail view with tracking
+- Saved addresses management
+- Profile settings
+- Password change
+- Email preferences
+- Wishlist management
+
+8. Search Results (/search?q=[query]):
+- Search term display
+- Product grid matching search
+- Filters applicable to results
+- Suggestions if no results
+- Search history (logged in users)
+
+PERSONALIZATION FEATURES
+
+AI-Powered Recommendations:
+- "You May Also Like" based on current product
+- "Frequently Bought Together" bundles
+- "Customers Who Viewed This Also Viewed"
+- Personalized homepage product recommendations
+- Email product recommendations
+
+User Behavior Tracking:
+- Recently viewed products
+- Browsing history analysis
+- Abandoned cart recovery
+- Search history
+- Favorite products/wishlist
+
+Smart Features:
+- Dynamic pricing display based on user location/currency
+- Personalized promotions based on browsing history
+- Size recommendations based on previous purchases
+- Reorder quickly from past orders
+- Predictive search with suggestions
+
+TECHNICAL REQUIREMENTS FOR STORE
+
+Performance:
+- Image optimization (WebP format, lazy loading)
+- Route-based code splitting
+- Server-side rendering for SEO
+- API route caching strategies
+- CDN integration for static assets
+- Page speed score: 90+ on Google PageSpeed
+
+SEO Optimization:
+- Dynamic meta tags per product/category
+- Structured data (Product, Review, BreadcrumbList schemas)
+- XML sitemap generation
+- Robots.txt configuration
+- Canonical URLs
+- Open Graph tags for social sharing
+- Alt text on all images
+
+Accessibility:
+- WCAG 2.1 AA compliance
+- Keyboard navigation support
+- Screen reader friendly
+- Focus indicators
+- ARIA labels on interactive elements
+- Color contrast compliance
+
+Responsive Design:
+- Mobile-first approach
+- Touch-friendly interfaces
+- Breakpoints: 640px, 768px, 1024px, 1280px, 1536px
+- Hamburger menu for mobile
+- Bottom navigation bar for mobile (optional)
+
+PHASE 3: ADMIN DASHBOARD
+
+Create a comprehensive admin platform at /(protected)/admin with the following structure:
+
+DASHBOARD ROUTES STRUCTURE
+
+/(protected)/admin
+├── layout.svelte (admin navigation, auth check)
+├── +page.svelte (dashboard overview)
+│
+├── products
+│   ├── +page.svelte (product list)
+│   ├── create/+page.svelte (new product)
+│   └── [id]/edit/+page.svelte (edit product)
+│
+├── categories
+│   ├── +page.svelte (category list)
+│   ├── create/+page.svelte (new category)
+│   └── [id]/edit/+page.svelte (edit category)
+│
+├── orders
+│   ├── +page.svelte (order list)
+│   └── [id]/+page.svelte (order detail)
+│
+├── customers
+│   ├── +page.svelte (customer list)
+│   └── [id]/+page.svelte (customer detail)
+│
+├── reviews
+│   ├── +page.svelte (review list with moderation)
+│   └── [id]/+page.svelte (review detail)
+│
+├── inventory
+│   └── +page.svelte (stock management)
+│
+├── files
+│   └── +page.svelte (media library)
+│
+├── settings
+│   ├── +page.svelte (general settings)
+│   ├── shipping/+page.svelte (shipping config)
+│   ├── tax/+page.svelte (tax settings)
+│   └── payments/+page.svelte (payment methods)
+│
+├── tags
+│   └── +page.svelte (tag management)
+│
+├── sizes
+│   └── +page.svelte (size management)
+│
+└── analytics
+    └── +page.svelte (reports and insights)
+
+ADMIN DASHBOARD FEATURES
+
+1. Dashboard Overview (/):
+- Key metrics cards: total revenue, orders, customers, products
+- Revenue chart (daily, weekly, monthly views)
+- Recent orders table with quick actions
+- Low stock alerts
+- Pending reviews count
+- Top selling products
+- Sales by category breakdown
+- Traffic analytics integration
+
+2. Product Management (/products):
+- Searchable product table with filters
+- Bulk actions: activate, deactivate, delete
+- Quick edit inline
+- Stock status indicators
+- Category and tag filters
+- Export to CSV
+- Duplicate product functionality
+
+Product Create/Edit Form:
+- Basic info: name, slug, SKU, barcode
+- Rich text editor for descriptions
+- Category selector (with hierarchy)
+- Pricing: base price, compare-at price
+- Inventory: stock quantity, low stock threshold
+- Images: upload multiple, set primary, reorder with drag-drop
+- Sizes: add variants with individual prices and stock
+- Tags: multi-select with create new option
+- SEO fields: meta title, meta description
+- Custom fields (JSON)
+- Product visibility toggle
+- Feature product checkbox
+- Save as draft or publish
+
+3. Category Management (/categories):
+- Hierarchical tree view
+- Drag-drop reordering
+- Create subcategories
+- Category with image upload
+- Active/inactive toggle
+- Product count per category
+- Bulk operations
+
+4. Order Management (/orders):
+- Order list with advanced filters (status, date range, amount)
+- Search by order number, customer name, email
+- Order status pipeline view
+- Quick actions: print invoice, send tracking, refund
+
+Order Detail Page:
+- Order timeline showing status changes
+- Customer information
+- Shipping and billing addresses
+- Order items table with images
+- Payment details
+- Update order status
+- Add tracking number
+- Add internal notes
+- Refund management
+- Print packing slip
+- Send email to customer
+
+5. Customer Management (/customers):
+- Customer list with search and filters
+- View lifetime value, total orders, average order
+- Customer detail page:
+  - Contact information
+  - Order history
+  - Total spent
+  - Saved addresses
+  - Account status
+  - Ban/unban functionality
+  - Add internal notes
+  - Impersonate user (for support)
+
+6. Review Management (/reviews):
+- Review moderation queue
+- Approve/reject reviews
+- Flag inappropriate reviews
+- Filter by rating, product, approval status
+- Respond to reviews
+- Delete reviews
+- Search by product or customer
+
+7. Inventory Management (/inventory):
+- Stock level overview across all products
+- Low stock warnings (red alerts)
+- Out of stock items
+- Filter by category
+- Bulk stock update
+- Stock history/audit log
+- Reorder suggestions based on sales velocity
+
+8. File Manager (/files):
+- Upload multiple files (drag-drop)
+- Image preview grid
+- Filter by file type, date, uploader
+- Search by filename
+- Copy URL to clipboard
+- Delete files
+- File details: size, dimensions, upload date
+- Integration with product and category image pickers
+
+9. Tag Management (/tags):
+- Tag list with product count
+- Create, edit, delete tags
+- Tag type classification
+- Merge tags functionality
+- Unused tags cleanup
+
+10. Size Management (/sizes):
+- Size list with product count
+- Create custom sizes
+- Reorder sizes (for display consistency)
+- Activate/deactivate sizes
+- Cannot delete sizes in use
+
+11. Store Settings (/settings):
+
+General Settings:
+- Store name, email, phone
+- Store address
+- Currency settings
+- Timezone
+- Date/time format
+- Maintenance mode toggle
+
+Shipping Settings:
+- Shipping zones
+- Flat rate, free shipping threshold
+- Shipping carrier integration
+- Delivery estimates
+
+Tax Settings:
+- Default tax rate
+- Tax by region/state
+- Tax inclusive/exclusive pricing
+- Tax calculation rules
+
+Payment Settings:
+- Stripe integration (API keys)
+- Payment methods enabled
+- Test mode toggle
+- Webhook configuration
+
+12. Analytics & Reports (/analytics):
+- Sales reports (daily, weekly, monthly, custom range)
+- Revenue breakdown by category
+- Top products by revenue
+- Top products by quantity sold
+- Customer acquisition over time
+- Average order value trends
+- Conversion rate metrics
+- Abandoned cart analysis
+- Export reports to CSV/PDF
+
+ADMIN UI/UX REQUIREMENTS
+
+Design System:
+- Consistent admin theme (suggest: shadcn/ui with dark mode option)
+- Sidebar navigation with icons
+- Breadcrumb navigation
+- Data tables with sorting, pagination, search
+- Form validation with inline errors
+- Success/error toast notifications
+- Loading skeletons for async operations
+- Confirmation modals for destructive actions
+- Responsive design (mobile admin access)
+
+UI COMPONENT STANDARDS - CRITICAL:
+All UI components MUST follow these strict guidelines:
+
+1. Button Standards:
+   - ALWAYS use Button component from $lib/components/ui/button
+   - NEVER add custom size, height, padding, or className overrides
+   - Use default button size (do not use size="lg" or size="sm" unless specifically needed)
+   - Respect variant prop only: default, destructive, outline, secondary, ghost, link
+   - Example: <Button variant="outline">Save</Button> NOT <Button class="h-12 px-6">Save</Button>
+
+2. All shadcn/ui Components:
+   - Use components from $lib/components/ui/* without modifications
+   - NEVER add custom classes that override default styles
+   - NEVER add custom padding, margin, height, width to shadcn components
+   - NEVER wrap shadcn components in divs with custom styling unless absolutely necessary
+   - Use component props only (variant, size if available)
+   - Examples of correct usage:
+     - <Input type="email" placeholder="Email" />
+     - <Select>...</Select>
+     - <Checkbox />
+     - <Card>...</Card>
+   - Examples of INCORRECT usage:
+     - <Button class="h-14 px-8 bg-blue-500">Submit</Button> ❌
+     - <Input class="h-12 px-4" /> ❌
+     - <div class="p-4"><Card class="shadow-lg">...</Card></div> ❌
+
+3. Color & Theme Standards:
+   - NEVER use custom text colors (text-blue-500, text-gray-700, etc.)
+   - NEVER use custom background colors (bg-white, bg-gray-100, etc.)
+   - ONLY use semantic colors from app.css theme system:
+     - background, foreground
+     - card, card-foreground
+     - popover, popover-foreground
+     - primary, primary-foreground
+     - secondary, secondary-foreground
+     - muted, muted-foreground
+     - accent, accent-foreground
+     - destructive, destructive-foreground
+     - border, input, ring
+   - Apply colors via Tailwind utility classes that reference CSS variables:
+     - bg-background, bg-card, bg-primary, etc.
+     - text-foreground, text-muted-foreground, text-primary-foreground, etc.
+     - border-border, ring-ring, etc.
+
+4. Font Weight Restrictions:
+   - MAXIMUM font weight allowed: font-bold
+   - NEVER use: font-extrabold, font-black, or custom font-weight values
+   - Allowed weights only:
+     - font-normal (400)
+     - font-medium (500)
+     - font-semibold (600)
+     - font-bold (700) - MAXIMUM
+   - For emphasis, use font-bold as the strongest weight
+   - Examples:
+     - ✅ <h1 class="text-3xl font-bold">Title</h1>
+     - ❌ <h1 class="text-3xl font-extrabold">Title</h1>
+     - ❌ <h1 class="text-3xl font-black">Title</h1>
+
+5. Border Radius Restrictions:
+   - MAXIMUM border radius allowed: rounded-xl
+   - NEVER use: rounded-2xl, rounded-3xl, or custom border-radius values
+   - Allowed border radius classes only:
+     - rounded-none (0px)
+     - rounded-sm (0.125rem)
+     - rounded (0.25rem)
+     - rounded-md (0.375rem)
+     - rounded-lg (0.5rem)
+     - rounded-xl (0.75rem) - MAXIMUM
+   - For directional radius: rounded-t-lg, rounded-b-xl, etc. (still max xl)
+   - Examples:
+     - ✅ <Card class="rounded-lg">...</Card>
+     - ✅ <div class="rounded-xl">...</div>
+     - ❌ <Card class="rounded-2xl">...</Card>
+     - ❌ <div class="rounded-3xl">...</div>
+
+6. Shadow Restrictions:
+   - MAXIMUM shadow allowed: shadow-lg
+   - NEVER use: shadow-xl, shadow-2xl, or custom box-shadow values
+   - Allowed shadow classes only:
+     - shadow-none
+     - shadow-sm
+     - shadow (default)
+     - shadow-md
+     - shadow-lg - MAXIMUM
+   - For colored shadows, maintain the same restriction: shadow-lg shadow-primary/20
+   - Examples:
+     - ✅ <Card class="shadow-md">...</Card>
+     - ✅ <div class="shadow-lg">...</div>
+     - ❌ <Card class="shadow-xl">...</Card>
+     - ❌ <div class="shadow-2xl">...</div>
+   
+7. Gradient & Highlight Exceptions:
+   - Gradients are ONLY allowed for:
+     - Hero sections
+     - Feature highlights
+     - Special promotional banners
+     - Loading states or effects
+   - When using gradients, ensure they work in BOTH light and dark modes:
+     - Use from-primary/20 to-primary/5 (opacity-based)
+     - Test visibility in both themes before implementing
+     - Avoid hardcoded color gradients like from-blue-500 to-purple-600
+   - Highlights must be subtle and theme-aware:
+     - Use bg-accent with text-accent-foreground
+     - Use border-accent for emphasis
+     - Use opacity modifiers: bg-primary/10 for subtle highlights
+   
+8. Visual Consistency:
+   - All cards use: <Card>, <CardHeader>, <CardTitle>, <CardContent>
+   - All forms use: <Label>, <Input>, <Select>, <Textarea> without modifications
+   - All tables use consistent structure with <Table>, <TableHeader>, <TableBody>, <TableRow>, <TableCell>
+   - All dialogs use: <Dialog>, <DialogContent>, <DialogHeader>, <DialogTitle>, <DialogDescription>
+   
+9. Spacing Standards:
+   - Use Tailwind spacing scale: space-y-4, gap-4, p-6, etc.
+   - NEVER add custom padding/margins to shadcn components
+   - Container spacing: p-6 for cards, p-4 for smaller elements
+   - Consistent gap between elements: gap-4 or space-y-4
+   
+10. Typography Standards:
+    - Respect default text sizes from shadcn components
+    - Use semantic heading sizes: text-3xl, text-2xl, text-xl, text-lg
+    - NEVER override font colors except via theme variables
+    - Body text should use text-foreground or text-muted-foreground
+    - Maximum font weight is font-bold (no extrabold or black)
+
+EXAMPLES OF WORLD-CLASS VISUAL ENHANCEMENTS (THEME-AWARE):
+
+CORRECT Gradient Usage:
+
+<!-- Hero section with theme-aware gradient, proper radius and shadow -->
+<div class="relative rounded-xl shadow-lg bg-gradient-to-br from-primary/10 via-background to-primary/5">
+  <div class="absolute inset-0 bg-grid-pattern opacity-5 rounded-xl"></div>
+  <div class="relative p-8">
+    <h1 class="text-4xl font-bold text-foreground">Welcome</h1>
+    <p class="text-lg font-medium text-muted-foreground">Discover amazing products</p>
+  </div>
+</div>
+
+CORRECT Highlight Usage:
+
+<!-- Featured product with proper constraints -->
+<Card class="rounded-lg shadow-md border-accent">
+  <CardContent class="bg-accent/5">
+    <h3 class="font-bold text-foreground">Featured Item</h3>
+    <p class="font-normal text-muted-foreground">Special offer</p>
+  </CardContent>
+</Card>
+
+CORRECT Button & Component Usage:
+
+<!-- Proper button usage -->
+<Button variant="default">Add to Cart</Button>
+<Button variant="outline">View Details</Button>
+
+<!-- Proper card with constraints -->
+<Card class="rounded-lg shadow">
+  <CardHeader>
+    <CardTitle class="font-bold">Product Name</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <p class="font-normal text-muted-foreground">Description here</p>
+  </CardContent>
+</Card>
+
+INCORRECT Usage Examples (DO NOT DO THIS):
+
+<!-- ❌ Custom button styling -->
+<Button class="h-14 px-8 bg-blue-600 text-white hover:bg-blue-700">Submit</Button>
+
+<!-- ❌ Excessive font weight -->
+<h1 class="text-4xl font-extrabold">Title</h1>
+<h2 class="text-2xl font-black">Subtitle</h2>
+
+<!-- ❌ Excessive border radius -->
+<Card class="rounded-2xl shadow-xl">...</Card>
+<div class="rounded-3xl">...</div>
+
+<!-- ❌ Excessive shadow -->
+<Card class="shadow-xl">...</Card>
+<div class="shadow-2xl">...</div>
+
+<!-- ❌ Custom text colors -->
+<p class="text-gray-700 dark:text-gray-300">Description</p>
+
+<!-- ❌ Custom background colors -->
+<Card class="bg-white dark:bg-gray-800 shadow-xl">...</Card>
+
+<!-- ❌ Overriding component defaults -->
+<Input class="h-12 px-4 border-2 border-blue-500" />
+
+DESIGN CONSTRAINTS SUMMARY:
+- ✅ Max font weight: font-bold (700)
+- ✅ Max border radius: rounded-xl (0.75rem)
+- ✅ Max shadow: shadow-lg
+- ✅ Only theme colors from app.css
+- ✅ No modifications to shadcn components
+- ✅ Default button sizes (no custom heights/padding)
+
+These constraints ensure a cohesive, professional design system that works seamlessly across light and dark themes while maintaining visual consistency throughout the entire e-commerce platform.
+
+Technical Requirements:
+- Role-based access control (admin, manager, staff roles)
+- Audit logs for sensitive actions
+- Optimistic UI updates
+- Real-time updates (optional: WebSocket for order notifications)
+- Keyboard shortcuts for power users
+- Export functionality (CSV, Excel)
+- Bulk operations with progress indicators
+- Undo functionality where applicable
+
+PHASE 4: INTEGRATION REQUIREMENTS
+
+Authentication & Authorization:
+- Extend existing user/session system
+- Add admin role checking middleware
+- Implement role hierarchy: super_admin > admin > manager > staff
+- Protect all admin routes with role verification
+- Session management with impersonation for customer support
+
+Payment Processing:
+- Paystack integration for checkout both regular checkout or one click checkout
+- Payment intent creation
+- Webhook handlers for payment events
+- Refund processing
+- Payment method storage

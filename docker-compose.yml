@@ -1,0 +1,58 @@
+version: "3.8"
+services:
+  ecommerce:
+    image: your-registry/ecommerce:latest
+    restart: always
+    ports:
+      - "3000"
+    networks:
+      - dokploy-network
+    environment:
+      # Server config
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3000
+      - ORIGIN=https://ecommerce.com
+      
+      # Better Auth
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=https://ecommerce.com
+      - BETTER_API_URL=https://ecommerce.com/api/auth
+      
+      # Database
+      - DATABASE_URL=${DATABASE_URL}
+      
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - REDIRECT_URI=${REDIRECT_URI}
+      
+      # MinIO
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_BUCKET=${MINIO_BUCKET}
+      
+      # Webhooks
+      - EMAIL_WEBHOOK=${EMAIL_WEBHOOK}
+      - BODY_SIZE_LIMIT=10485760
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecommerce.rule=Host(`ecommerce.com`)"
+      - "traefik.http.routers.ecommerce.entrypoints=websecure"
+      - "traefik.http.routers.ecommerce.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ecommerce.loadbalancer.server.port=3000"
+      
+      # www redirect
+      - "traefik.http.routers.ecommerce-www.rule=Host(`www.ecommerce.com`)"
+      - "traefik.http.routers.ecommerce-www.entrypoints=websecure"
+      - "traefik.http.routers.ecommerce-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.ecommerce-www.middlewares=ecommerce-www-redirect"
+      - "traefik.http.middlewares.ecommerce-www-redirect.redirectregex.regex=^https://www\\.ecommerce\\.com/(.*)"
+      - "traefik.http.middlewares.ecommerce-www-redirect.redirectregex.replacement=https://ecommerce.com/$${1}"
+      - "traefik.http.middlewares.ecommerce-www-redirect.redirectregex.permanent=true"
+
+networks:
+  dokploy-network:
+    external: true

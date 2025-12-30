@@ -1,0 +1,28 @@
+import type { PageServerLoad } from './$types';
+import { error, redirect } from '@sveltejs/kit';
+import { verifyTransaction } from '$lib/server/paystack.server';
+import { OrderCRUD } from '$lib/db/order';
+
+export const load = (async ({ params, url }) => {
+  const { id } = params;
+  const reference = url.searchParams.get('reference');
+
+  if (!reference) {
+    throw redirect(303, `/order/${id}/confirmed?error=missing_reference`);
+  }
+
+  // Verify with Paystack
+  const verification = await verifyTransaction(reference);
+
+  if (verification.success && verification.data?.status === 'success') {
+    // Update order status
+    await OrderCRUD.updatePaymentStatus(id, 'paid', reference);
+    await OrderCRUD.updateStatus(id, 'processing');
+
+    throw redirect(303, `/order/${id}/confirmed?status=success`);
+  } else {
+    // Payment failed or abandoned
+    await OrderCRUD.updatePaymentStatus(id, 'failed', reference);
+    throw redirect(303, `/order/${id}/confirmed?status=failed&message=${verification.error || 'Payment verification failed'}`);
+  }
+}) satisfies PageServerLoad;
