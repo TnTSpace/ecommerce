@@ -10,7 +10,7 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import * as Table from "$lib/components/ui/table/index.js";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { Badge } from "$lib/components/ui/badge";
   import {
     Plus,
     Search,
@@ -18,10 +18,15 @@
     Pencil,
     Trash2,
     FolderTree,
+    Loader2,
   } from "@lucide/svelte";
+  import { enhance } from "$app/forms";
+  import { invalidateAll } from "$app/navigation";
+  import { toast } from "svelte-sonner";
 
   let { data }: PageProps = $props();
   let searchQuery = $state("");
+  let isDeleting = $state<string | null>(null);
 
   const categories = $derived(data.categories || []);
 
@@ -68,8 +73,8 @@
         <Table.Header>
           <Table.Row>
             <Table.Head>Name</Table.Head>
-            <Table.Head class="hidden sm:table-cell">Slug</Table.Head>
-            <Table.Head class="hidden md:table-cell">Products</Table.Head>
+            <Table.Head class="hidden sm:table-cell">ID</Table.Head>
+            <Table.Head class="hidden md:table-cell">Usage</Table.Head>
             <Table.Head>Status</Table.Head>
             <Table.Head class="w-12"></Table.Head>
           </Table.Row>
@@ -101,7 +106,7 @@
               </Table.Cell>
               <Table.Cell class="hidden md:table-cell">
                 <span class="text-muted-foreground"
-                  >{category.productCount || 0}</span
+                  >{category.productCount || 0} products</span
                 >
               </Table.Cell>
               <Table.Cell>
@@ -127,9 +132,39 @@
                       </a>
                     </DropdownMenu.Item>
                     <DropdownMenu.Separator />
-                    <DropdownMenu.Item class="text-destructive">
-                      <Trash2 class="mr-2 h-4 w-4" />
-                      Delete
+                    <DropdownMenu.Item>
+                      <form
+                        method="POST"
+                        action="?/delete"
+                        use:enhance={() => {
+                          isDeleting = category.id;
+                          return async ({ result }) => {
+                            isDeleting = null;
+                            if (result.type === "success") {
+                              toast.success("Category deleted successfully");
+                              await invalidateAll();
+                            } else {
+                              toast.error("Failed to delete category");
+                            }
+                          };
+                        }}
+                        class="flex w-full"
+                      >
+                        <input type="hidden" name="id" value={category.id} />
+                        <button
+                          type="submit"
+                          class="flex w-full items-center text-destructive"
+                          disabled={isDeleting === category.id}
+                        >
+                          {#if isDeleting === category.id}
+                            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                            Deleting...
+                          {:else}
+                            <Trash2 class="mr-2 h-4 w-4" />
+                            Delete
+                          {/if}
+                        </button>
+                      </form>
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Root>

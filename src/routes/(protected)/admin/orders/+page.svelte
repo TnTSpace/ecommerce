@@ -8,8 +8,10 @@
   } from "$lib/components/ui/card/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
+  import { Label } from "$lib/components/ui/label";
   import * as Table from "$lib/components/ui/table/index.js";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+  import * as Dialog from "$lib/components/ui/dialog";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import {
     Search,
@@ -21,12 +23,21 @@
     XCircle,
     Clock,
     Filter,
+    Loader2,
   } from "@lucide/svelte";
   import { formatPrice } from "$lib/fxns";
+  import { enhance } from "$app/forms";
+  import { invalidateAll } from "$app/navigation";
+  import { toast } from "svelte-sonner";
 
   let { data }: PageProps = $props();
   let searchQuery = $state("");
   let statusFilter = $state("all");
+
+  let isStatusDialogOpen = $state(false);
+  let isUpdating = $state(false);
+  let selectedOrder = $state<any>(null);
+  let newStatus = $state("");
 
   const orders = data.orders || [];
 
@@ -74,18 +85,11 @@
     }
   };
 
-  const getPaymentColor = (status: string) => {
-    switch (status) {
-      case "paid":
-        return "gsgreen";
-      case "pending":
-        return "gsorange";
-      case "failed":
-        return "gsred";
-      default:
-        return "";
-    }
-  };
+  function openStatusDialog(order: any) {
+    selectedOrder = order;
+    newStatus = order.status;
+    isStatusDialogOpen = true;
+  }
 </script>
 
 <div class="space-y-6">
@@ -115,7 +119,7 @@
             bind:value={searchQuery}
           />
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           {#each ["all", "pending", "processing", "shipped", "delivered"] as status}
             <Button
               variant={statusFilter === status ? "default" : "outline"}
@@ -173,7 +177,9 @@
               <Table.Cell class="hidden md:table-cell">
                 <Badge
                   variant="secondary"
-                  class={getPaymentColor(order.paymentStatus)}
+                  class={order.paymentStatus === "paid"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-orange-100 text-orange-800"}
                 >
                   {order.paymentStatus}
                 </Badge>
@@ -197,11 +203,16 @@
                     </Button>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content align="end">
-                    <DropdownMenu.Item href={`/admin/orders/${order.id}`}>
-                      <Eye class="mr-2 h-4 w-4" />
-                      View Details
-                    </DropdownMenu.Item>
                     <DropdownMenu.Item>
+                      <a
+                        href={`/admin/orders/${order.id}`}
+                        class="flex w-full items-center"
+                      >
+                        <Eye class="mr-2 h-4 w-4" />
+                        View Details
+                      </a>
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item onclick={() => openStatusDialog(order)}>
                       <Truck class="mr-2 h-4 w-4" />
                       Update Status
                     </DropdownMenu.Item>
@@ -211,8 +222,12 @@
             </Table.Row>
           {:else}
             <Table.Row>
-              <Table.Cell colspan={7} class="py-8 text-center">
-                <p class="text-muted-foreground">No orders found</p>
+              <Table.Cell
+                colspan={7}
+                class="py-8 text-center text-muted-foreground"
+              >
+                <Package class="size-8 mx-auto mb-2 opacity-20" />
+                No orders found
               </Table.Cell>
             </Table.Row>
           {/each}
@@ -221,3 +236,65 @@
     </CardContent>
   </Card>
 </div>
+
+<Dialog.Root bind:open={isStatusDialogOpen}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Update Order Status</Dialog.Title>
+      <Dialog.Description>
+        Change the status for order <strong>{selectedOrder?.orderNumber}</strong
+        >
+      </Dialog.Description>
+    </Dialog.Header>
+    <form
+      method="POST"
+      action={`/admin/orders/${selectedOrder?.id}?/updateStatus`}
+      use:enhance={() => {
+        isUpdating = true;
+        return async ({ result }) => {
+          isUpdating = false;
+          if (result.type === "success") {
+            isStatusDialogOpen = false;
+            toast.success("Order status updated successfully");
+            await invalidateAll();
+          } else {
+            toast.error("Failed to update status");
+          }
+        };
+      }}
+      class="space-y-4 pt-4"
+    >
+      <div class="space-y-2">
+        <Label for="status">New Status</Label>
+        <select
+          id="status"
+          name="status"
+          bind:value={newStatus}
+          class="w-full flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <Dialog.Footer>
+        <Button
+          type="button"
+          variant="outline"
+          onclick={() => (isStatusDialogOpen = false)}>Cancel</Button
+        >
+        <Button type="submit" disabled={isUpdating}>
+          {#if isUpdating}
+            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+            Updating...
+          {:else}
+            Update Status
+          {/if}
+        </Button>
+      </Dialog.Footer>
+    </form>
+  </Dialog.Content>
+</Dialog.Root>

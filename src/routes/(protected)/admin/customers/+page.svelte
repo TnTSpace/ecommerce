@@ -81,7 +81,11 @@
               {/if}
             </Table.Cell>
             <Table.Cell class="text-right">
-              <Button variant="ghost" size="sm">View Details</Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                href="/admin/customers/{user.id}">View Details</Button
+              >
             </Table.Cell>
           </Table.Row>
         {/each}

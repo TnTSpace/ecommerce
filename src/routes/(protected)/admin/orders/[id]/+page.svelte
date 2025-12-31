@@ -26,11 +26,12 @@
     MapPin,
     CreditCard,
     Loader2,
+    User,
   } from "@lucide/svelte";
 
   let { data }: PageProps = $props();
-  const order = data.order;
-  const items = order?.items || [];
+  const { order } = $derived(data);
+  const items = $derived(order?.items || []);
 
   let isUpdating = $state(false);
 
@@ -230,15 +231,19 @@
               action="?/updateStatus"
               use:enhance={() => {
                 isUpdating = true;
-                return async () => (isUpdating = false);
+                return async () => {
+                  isUpdating = false;
+                };
               }}
               class="space-y-4"
             >
               <div class="space-y-2">
-                <label class="text-sm font-medium">Order Status</label>
+                <label for="status-select" class="text-sm font-medium"
+                  >Order Status</label
+                >
                 <div class="grid gap-2">
-                  <!-- Simplified for now as full shadcn-svelte select is verbose -->
                   <select
+                    id="status-select"
                     name="status"
                     class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     value={order.status}

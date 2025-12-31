@@ -25,7 +25,9 @@ RUN echo "DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy" > .env && 
     echo "BETTER_AUTH_URL=http://localhost:3000" >> .env && \
     echo "NODE_ENV=production" >> .env && \
     echo "EMAIL_WEBHOOK=https://email" >> .env && \
-    echo "BODY_SIZE_LIMIT=10485760" >> .env
+    echo "BODY_SIZE_LIMIT=10485760" >> .env && \
+    echo "PAYSTACK_SECRET_KEY=ecommerce" >> .env && \
+    echo "PRODUCT_AGENT=ecommerce" >> .env
 
 # Modify vite.config to skip SSR during build (temporary workaround)
 # Build with SSR disabled to prevent server code execution

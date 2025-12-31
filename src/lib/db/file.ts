@@ -1,6 +1,7 @@
 import { BaseCRUD, eq, desc, sql, type CRUDResult, type CRUDListResult } from "./crud";
 import { file, type File, type NewFile } from "./schema";
 import { db } from "./drizzle";
+import { handleFileUpload, deleteFileById } from "$lib/server/minio";
 
 interface FileFilters {
   uploadedBy?: string;
@@ -11,6 +12,53 @@ interface FileFilters {
 class FileCRUDClass extends BaseCRUD<typeof file, File, NewFile> {
   constructor() {
     super(file);
+  }
+
+  /**
+   * Upload file to Minio and save in DB
+   */
+  async upload(fileData: globalThis.File, category: string = 'general', userId?: string): Promise<CRUDResult<File>> {
+    try {
+      const uploadResult = await handleFileUpload(fileData);
+
+      const insertData: any = {
+        id: crypto.randomUUID(),
+        originalName: fileData.name,
+        filename: uploadResult.id,
+        url: uploadResult.url,
+        mimeType: fileData.type,
+        size: fileData.size,
+        category,
+        uploadedBy: userId || null,
+      };
+
+      return await this.create(insertData);
+    } catch (error) {
+      console.error("[FileCRUD] Upload error:", error);
+      return { success: false, error: error instanceof Error ? error.message : "Failed to upload file" };
+    }
+  }
+
+  /**
+   * Delete file from Minio and DB
+   */
+  async deleteWithStorage(id: string): Promise<CRUDResult<boolean>> {
+    try {
+      const fileRecord = await this.getById(id);
+      if (!fileRecord.success || !fileRecord.data) {
+        return { success: false, error: "File not found" };
+      }
+
+      // Delete from Minio
+      await deleteFileById('uploads', fileRecord.data.filename);
+
+      // Delete from DB
+      const dbResult = await this.delete(id);
+      return { success: dbResult.success, data: dbResult.success, error: dbResult.error };
+    } catch (error) {
+      console.error("[FileCRUD] Delete error:", error);
+      return { success: false, error: error instanceof Error ? error.message : "Failed to delete file" };
+    }
   }
 
   /**
@@ -35,13 +83,7 @@ class FileCRUDClass extends BaseCRUD<typeof file, File, NewFile> {
         conditions.push(sql`${file.mimeType} LIKE ${filters.mimeType + '%'}`);
       }
 
-      const whereClause = conditions.length > 0 ? sql`${conditions.join(' AND ')}` : undefined;
-
-      const [countResult] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(file);
-
-      const total = Number(countResult?.count || 0);
+      const total = await this.count();
 
       const results = await db
         .select()
@@ -73,12 +115,7 @@ class FileCRUDClass extends BaseCRUD<typeof file, File, NewFile> {
     try {
       const offset = (page - 1) * limit;
 
-      const [countResult] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(file)
-        .where(eq(file.category, category));
-
-      const total = Number(countResult?.count || 0);
+      const total = await this.count(eq(file.category, category));
 
       const results = await db
         .select()
@@ -111,12 +148,7 @@ class FileCRUDClass extends BaseCRUD<typeof file, File, NewFile> {
     try {
       const offset = (page - 1) * limit;
 
-      const [countResult] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(file)
-        .where(sql`${file.mimeType} LIKE 'image/%'`);
-
-      const total = Number(countResult?.count || 0);
+      const total = await this.count(sql`${file.mimeType} LIKE 'image/%'`);
 
       const results = await db
         .select()

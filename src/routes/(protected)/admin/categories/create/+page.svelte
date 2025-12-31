@@ -15,23 +15,15 @@
   import { Switch } from "$lib/components/ui/switch/index.js";
   import * as Select from "$lib/components/ui/select/index.js";
   import { ChevronLeft, Loader2 } from "@lucide/svelte";
-  import { slugify } from "$lib/fxns";
+  import { toast } from "svelte-sonner";
 
   let { data }: PageProps = $props();
 
   let isSubmitting = $state(false);
   let name = $state("");
-  let slug = $state("");
   let description = $state("");
   let parentId = $state("");
   let isActive = $state(true);
-
-  // Auto-generate slug from name
-  $effect(() => {
-    if (name && !slug) {
-      slug = slugify(name);
-    }
-  });
 
   const categories = data.categories || [];
 </script>
@@ -58,7 +50,12 @@
       return async ({ result }) => {
         isSubmitting = false;
         if (result.type === "redirect") {
+          toast.success("Category created successfully");
           goto(result.location);
+        } else if (result.type === "failure") {
+          toast.error(
+            (result as any).data?.error || "Failed to create category",
+          );
         }
       };
     }}
@@ -70,27 +67,15 @@
           <CardTitle>Basic Information</CardTitle>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-2">
-              <Label for="name">Category Name *</Label>
-              <Input
-                id="name"
-                name="name"
-                bind:value={name}
-                required
-                placeholder="Electronics, Fashion..."
-              />
-            </div>
-            <div class="space-y-2">
-              <Label for="slug">Slug *</Label>
-              <Input
-                id="slug"
-                name="slug"
-                bind:value={slug}
-                required
-                placeholder="electronics"
-              />
-            </div>
+          <div class="space-y-2">
+            <Label for="name">Category Name *</Label>
+            <Input
+              id="name"
+              name="name"
+              bind:value={name}
+              required
+              placeholder="Electronics, Fashion..."
+            />
           </div>
           <div class="space-y-2">
             <Label for="description">Description</Label>
@@ -115,19 +100,24 @@
           <div class="flex items-center justify-between">
             <Label for="isActive">Active</Label>
             <Switch id="isActive" name="isActive" bind:checked={isActive} />
+            <input type="hidden" name="isActive" value={isActive} />
           </div>
           <div class="space-y-2">
             <Label>Parent Category</Label>
-            <select
-              name="parentId"
-              class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              bind:value={parentId}
-            >
-              <option value="">None (Root)</option>
-              {#each categories as cat}
-                <option value={cat.id}>{cat.name}</option>
-              {/each}
-            </select>
+            <Select.Root type="single" name="parentId" bind:value={parentId}>
+              <Select.Trigger>
+                <span
+                  >{categories.find((c) => c.id === parentId)?.name ||
+                    "None (Root)"}</span
+                >
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="">None (Root)</Select.Item>
+                {#each categories as cat}
+                  <Select.Item value={cat.id}>{cat.name}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </div>
         </CardContent>
       </Card>

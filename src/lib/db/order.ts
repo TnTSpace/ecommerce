@@ -117,7 +117,7 @@ class OrderCRUDClass extends BaseCRUD<typeof order, Order, NewOrder> {
     filters?: OrderFilters,
     page = 1,
     limit = 20
-  ): Promise<CRUDListResult<Order>> {
+  ): Promise<CRUDListResult<OrderWithItems>> {
     try {
       const offset = (page - 1) * limit;
       const conditions: any[] = [];
@@ -152,9 +152,24 @@ class OrderCRUDClass extends BaseCRUD<typeof order, Order, NewOrder> {
       if (whereClause) query.where(whereClause);
       const results = await query.limit(limit).offset(offset);
 
+      // Fetch items for these orders
+      let finalData: OrderWithItems[] = results;
+      if (results.length > 0) {
+        const orderIds = results.map(o => o.id);
+        const allItems = await db
+          .select()
+          .from(orderItem)
+          .where(sql`${orderItem.orderId} IN ${orderIds}`);
+
+        finalData = results.map(o => ({
+          ...o,
+          items: allItems.filter(item => item.orderId === o.id)
+        }));
+      }
+
       return {
         success: true,
-        data: results,
+        data: finalData,
         meta: {
           total,
           page,
@@ -171,7 +186,7 @@ class OrderCRUDClass extends BaseCRUD<typeof order, Order, NewOrder> {
   /**
    * Get user orders
    */
-  async getUserOrders(userId: string, page = 1, limit = 20): Promise<CRUDListResult<Order>> {
+  async getUserOrders(userId: string, page = 1, limit = 20): Promise<CRUDListResult<OrderWithItems>> {
     return this.getFiltered({ userId }, page, limit);
   }
 

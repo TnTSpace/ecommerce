@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
+  import type { Settings as SettingsType } from "$lib/db/schema";
   import { enhance } from "$app/forms";
+  import { invalidateAll } from "$app/navigation";
   import {
     Card,
     CardContent,
@@ -31,22 +33,39 @@
     Loader2,
   } from "@lucide/svelte";
 
+  import { toast } from "svelte-sonner";
+
   let { data }: PageProps = $props();
-  const settings = data.settings || {};
+  const settings = $derived(data.settings || ({} as Partial<SettingsType>));
 
   let isSaving = $state(false);
 
-  // Form State
-  let storeName = $state(settings.storeName || "");
-  let storeEmail = $state(settings.storeEmail || "");
-  let storePhone = $state(settings.storePhone || "");
-  let storeAddress = $state(settings.storeAddress || "");
-  let currency = $state(settings.currency || "NGN");
-  let taxRate = $state(settings.taxRate || "0");
-  let maintenanceMode = $state(settings.maintenanceMode || false);
-  let facebookUrl = $state(settings.facebookUrl || "");
-  let twitterUrl = $state(settings.twitterUrl || "");
-  let instagramUrl = $state(settings.instagramUrl || "");
+  // Form State (synced from data via $effect)
+  let storeName = $state("");
+  let storeEmail = $state("");
+  let storePhone = $state("");
+  let storeAddress = $state("");
+  let currency = $state("NGN");
+  let taxRate = $state("0");
+  let maintenanceMode = $state(false);
+  let facebookUrl = $state("");
+  let twitterUrl = $state("");
+  let instagramUrl = $state("");
+
+  $effect(() => {
+    if (data.settings) {
+      storeName = data.settings.storeName || "";
+      storeEmail = data.settings.storeEmail || "";
+      storePhone = data.settings.storePhone || "";
+      storeAddress = data.settings.storeAddress?.addressLine1 || "";
+      currency = data.settings.currency || "NGN";
+      taxRate = data.settings.taxRate || "0";
+      maintenanceMode = data.settings.maintenanceMode || false;
+      facebookUrl = data.settings.socialLinks?.facebook || "";
+      twitterUrl = data.settings.socialLinks?.twitter || "";
+      instagramUrl = data.settings.socialLinks?.instagram || "";
+    }
+  });
 </script>
 
 <div class="space-y-6">
@@ -65,7 +84,15 @@
     method="POST"
     use:enhance={() => {
       isSaving = true;
-      return async () => (isSaving = false);
+      return async ({ result }) => {
+        isSaving = false;
+        if (result.type === "success") {
+          toast.success("Settings updated successfully");
+          await invalidateAll();
+        } else {
+          toast.error("Failed to save settings");
+        }
+      };
     }}
     class="grid gap-6 lg:grid-cols-3"
   >

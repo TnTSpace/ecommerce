@@ -56,6 +56,7 @@
 		"drizzle-orm": "^0.44.6",
 		"minio": "^8.0.6",
 		"postgres": "^3.4.7",
-		"runed": "^0.23.4"
+		"runed": "^0.23.4",
+		"svelte-lexical": "^0.6.3"
 	}
 }

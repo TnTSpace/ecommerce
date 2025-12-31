@@ -1,21 +1,43 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
-  import { Boxes, Package, AlertTriangle, Search } from "@lucide/svelte";
+  import { Label } from "$lib/components/ui/label";
+  import {
+    Boxes,
+    Package,
+    AlertTriangle,
+    Search,
+    Loader2,
+  } from "@lucide/svelte";
   import * as Table from "$lib/components/ui/table";
+  import * as Dialog from "$lib/components/ui/dialog";
   import { Badge } from "$lib/components/ui/badge";
+  import { enhance } from "$app/forms";
+  import { invalidateAll } from "$app/navigation";
+  import { toast } from "svelte-sonner";
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
   const { products, search } = $derived(data);
 
+  let isUpdateDialogOpen = $state(false);
+  let isUpdating = $state(false);
+  let selectedProduct = $state<any>(null);
+  let newQuantity = $state(0);
+
   const getStockBadge = (quantity: number, threshold: number) => {
     if (quantity <= 0)
       return { label: "Out of Stock", variant: "destructive" as const };
     if (quantity <= threshold)
-      return { label: "Low Stock", variant: "destructive" as const }; // Use destructive for low stock too or outline
+      return { label: "Low Stock", variant: "destructive" as const };
     return { label: "In Stock", variant: "outline" as const };
   };
+
+  function openUpdateDialog(product: any) {
+    selectedProduct = product;
+    newQuantity = product.stockQuantity;
+    isUpdateDialogOpen = true;
+  }
 </script>
 
 <div class="flex flex-col gap-6">
@@ -40,7 +62,7 @@
     </form>
   </div>
 
-  <div class="rounded-md border bg-card overflow-hidden">
+  <div class="rounded-xl border bg-card overflow-hidden">
     <Table.Root>
       <Table.Header>
         <Table.Row>
@@ -86,25 +108,93 @@
               <Badge
                 variant={stock.variant}
                 class={stock.label === "In Stock"
-                  ? "text-green-600 border-green-600"
+                  ? "text-emerald-600 border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20"
                   : ""}
               >
                 {stock.label}
               </Badge>
             </Table.Cell>
             <Table.Cell class="text-right">
-              <Button variant="ghost" size="sm">Update Stock</Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onclick={() => openUpdateDialog(product)}>Update Stock</Button
+              >
             </Table.Cell>
           </Table.Row>
-        {/each}
-        {#if products.length === 0}
+        {:else}
           <Table.Row>
-            <Table.Cell colspan={6} class="h-24 text-center">
+            <Table.Cell
+              colspan={6}
+              class="h-32 text-center text-muted-foreground"
+            >
+              <Package class="size-8 mx-auto mb-2 opacity-20" />
               No products found.
             </Table.Cell>
           </Table.Row>
-        {/if}
+        {/each}
       </Table.Body>
     </Table.Root>
   </div>
 </div>
+
+<Dialog.Root bind:open={isUpdateDialogOpen}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Update Stock</Dialog.Title>
+      <Dialog.Description>
+        Adjust stock levels for <strong>{selectedProduct?.name}</strong>
+      </Dialog.Description>
+    </Dialog.Header>
+    <form
+      method="POST"
+      action="?/updateStock"
+      use:enhance={() => {
+        isUpdating = true;
+        return async ({ result }) => {
+          isUpdating = false;
+          if (result.type === "success") {
+            isUpdateDialogOpen = false;
+            toast.success("Stock updated successfully");
+            await invalidateAll();
+          } else {
+            toast.error("Failed to update stock");
+          }
+        };
+      }}
+      class="space-y-4 pt-4"
+    >
+      <input type="hidden" name="id" value={selectedProduct?.id} />
+      <div class="space-y-2">
+        <Label for="quantity">New Quantity</Label>
+        <Input
+          id="quantity"
+          name="quantity"
+          type="number"
+          bind:value={newQuantity}
+          min="0"
+          required
+        />
+        <p class="text-xs text-muted-foreground">
+          Current stock: {selectedProduct?.stockQuantity}
+        </p>
+      </div>
+
+      <Dialog.Footer>
+        <Button
+          type="button"
+          variant="outline"
+          onclick={() => (isUpdateDialogOpen = false)}>Cancel</Button
+        >
+        <Button type="submit" disabled={isUpdating}>
+          {#if isUpdating}
+            <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+            Updating...
+          {:else}
+            Save Changes
+          {/if}
+        </Button>
+      </Dialog.Footer>
+    </form>
+  </Dialog.Content>
+</Dialog.Root>

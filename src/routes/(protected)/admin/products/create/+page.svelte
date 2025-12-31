@@ -7,27 +7,48 @@
     CardContent,
     CardHeader,
     CardTitle,
+    CardDescription,
   } from "$lib/components/ui/card/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
   import { Textarea } from "$lib/components/ui/textarea/index.js";
   import { Switch } from "$lib/components/ui/switch/index.js";
-  import * as Select from "$lib/components/ui/select/index.js";
-  import { ChevronLeft, Upload, X, Loader2 } from "@lucide/svelte";
-  import { slugify } from "$lib/fxns";
+  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { Separator } from "$lib/components/ui/separator/index.js";
+  import SearchableSelect from "$lib/components/ui/searchable-select/searchable-select.svelte";
+  import MultiSearchableSelect from "$lib/components/ui/searchable-select/multi-searchable-select.svelte";
+  import RichEditor from "$lib/components/ui/editor/rich-editor.svelte";
+  import { resizeImage } from "$lib/authentication/imageresize";
+  import {
+    ChevronLeft,
+    Upload,
+    X,
+    Loader2,
+    Sparkles,
+    Plus,
+    Trash2,
+    Check,
+    Link,
+    Image as ImageIcon,
+    Info,
+  } from "@lucide/svelte";
+  import { toast } from "svelte-sonner";
 
   let { data }: PageProps = $props();
 
   let isSubmitting = $state(false);
+  let isGenerating = $state(false);
+
+  // Form State
   let name = $state("");
-  let slug = $state("");
   let description = $state("");
   let shortDescription = $state("");
   let sku = $state("");
   let barcode = $state("");
   let basePrice = $state("");
   let compareAtPrice = $state("");
+  let marketPrice = $state("");
   let stockQuantity = $state("0");
   let lowStockThreshold = $state("10");
   let categoryId = $state("");
@@ -37,26 +58,79 @@
   let metaDescription = $state("");
   let images: File[] = $state([]);
   let imagePreviews: string[] = $state([]);
+  let imageUrlInput = $state("");
+  let isProcessingImage = $state(false);
 
-  // Auto-generate slug from name
-  $effect(() => {
-    if (name && !slug) {
-      slug = slugify(name);
+  // Tags & Sizes
+  let selectedTagIds = $state<string[]>([]);
+  let features = $state<{ name: string; value: string }[]>([]);
+  let productSizes = $state<
+    {
+      sizeId: string;
+      additionalPrice: string;
+      stockQuantity: string;
+      sku: string;
+      isAvailable: boolean;
+    }[]
+  >([]);
+
+  async function processAndAddFile(file: File) {
+    isProcessingImage = true;
+    try {
+      // Resize to ensure it's under 200KB. WebP usually achieves this easily at 0.8 quality for 1200px.
+      const resized = await resizeImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8,
+        format: "webp",
+      });
+
+      images = [...images, resized];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imagePreviews = [...imagePreviews, e.target?.result as string];
+      };
+      reader.readAsDataURL(resized);
+    } catch (error) {
+      console.error("Resizing error:", error);
+      toast.error(`Failed to process ${file.name}`);
+    } finally {
+      isProcessingImage = false;
     }
-  });
+  }
 
-  const handleImageUpload = (e: Event) => {
+  const handleImageUpload = async (e: Event) => {
     const input = e.target as HTMLInputElement;
     if (input.files) {
       const newFiles = Array.from(input.files);
-      images = [...images, ...newFiles];
-      newFiles.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          imagePreviews = [...imagePreviews, e.target?.result as string];
-        };
-        reader.readAsDataURL(file);
-      });
+      for (const file of newFiles) {
+        await processAndAddFile(file);
+      }
+      input.value = ""; // Reset
+    }
+  };
+
+  const handleImageUrl = async () => {
+    if (!imageUrlInput) return;
+
+    isProcessingImage = true;
+    try {
+      const response = await fetch(imageUrlInput);
+      if (!response.ok) throw new Error("Failed to fetch image");
+
+      const blob = await response.blob();
+      const fileName = imageUrlInput.split("/").pop() || "image.webp";
+      const file = new File([blob], fileName, { type: blob.type });
+
+      await processAndAddFile(file);
+      imageUrlInput = "";
+    } catch (error) {
+      console.error("URL Image error:", error);
+      toast.error(
+        "Failed to load image from URL. Ensure the URL is valid and CORS allowed.",
+      );
+    } finally {
+      isProcessingImage = false;
     }
   };
 
@@ -65,20 +139,102 @@
     imagePreviews = imagePreviews.filter((_, i) => i !== index);
   };
 
-  const categories = data.categories || [];
+  const addFeature = () => {
+    features = [...features, { name: "", value: "" }];
+  };
+
+  const removeFeature = (index: number) => {
+    features = features.filter((_, i) => i !== index);
+  };
+
+  const addSize = (sizeId: string, sizeName: string) => {
+    if (productSizes.find((ps) => ps.sizeId === sizeId)) return;
+    productSizes = [
+      ...productSizes,
+      {
+        sizeId,
+        additionalPrice: "0",
+        stockQuantity: "0",
+        sku: `${sku ? sku + "-" : ""}${sizeName.toUpperCase()}`,
+        isAvailable: true,
+      },
+    ];
+  };
+
+  const removeSize = (index: number) => {
+    productSizes = productSizes.filter((_, i) => i !== index);
+  };
+
+  async function generateAIPrompt() {
+    if (!name && !shortDescription) {
+      toast.error("Please provide a name or short description first");
+      return;
+    }
+
+    isGenerating = true;
+    try {
+      const response = await fetch("/api/products/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: name + " " + shortDescription }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate description");
+
+      const aiData = await response.json();
+      description = aiData.description;
+      if (aiData.metaTitle) metaTitle = aiData.metaTitle;
+      if (aiData.metaDescription) metaDescription = aiData.metaDescription;
+      if (aiData.marketPrice) marketPrice = String(aiData.marketPrice);
+      if (aiData.features?.length > 0) features = aiData.features;
+
+      toast.success("AI Content generated successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to generate AI content");
+    } finally {
+      isGenerating = false;
+    }
+  }
+
+  // Fetch functions for SearchableSelect
+  async function fetchCategories(query: string) {
+    // Map the image string to the object format expected by SearchableSelect
+    return data.categories
+      .filter((c: any) => c.name.toLowerCase().includes(query.toLowerCase()))
+      .map((c: any) => ({
+        ...c,
+        image: c.image ? { url: c.image } : null,
+      }));
+  }
+
+  async function fetchTags(query: string) {
+    return data.tags
+      .filter((t: any) => t.name.toLowerCase().includes(query.toLowerCase()))
+      .map((t: any) => ({
+        ...t,
+        image: t.image ? { url: t.image } : null,
+      }));
+  }
 </script>
 
-<div class="space-y-6">
+<div class="space-y-6 max-w-6xl mx-auto pb-20">
   <!-- Header -->
-  <div class="flex items-center gap-4">
-    <Button variant="ghost" size="icon" onclick={() => goto("/admin/products")}>
-      <ChevronLeft class="h-4 w-4" />
-    </Button>
-    <div>
-      <h1 class="text-2xl font-bold text-foreground">Add Product</h1>
-      <p class="text-sm text-muted-foreground">
-        Create a new product for your store
-      </p>
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <Button
+        variant="ghost"
+        size="icon"
+        onclick={() => goto("/admin/products")}
+      >
+        <ChevronLeft class="size-4" />
+      </Button>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Add New Product</h1>
+        <p class="text-sm text-muted-foreground">
+          Fill in the details to create a world-class product listing
+        </p>
+      </div>
     </div>
   </div>
 
@@ -91,114 +247,149 @@
         isSubmitting = false;
         if (result.type === "redirect") {
           goto(result.location);
+        } else if (result.type === "failure") {
+          // const message = result.data?.error || "Failed to create product";
+          console.log(result.data)
+          toast.error("Failed to create product");
         }
       };
     }}
     class="grid gap-6 lg:grid-cols-3"
   >
+    <!-- Hidden fields for JSON data -->
+    <input type="hidden" name="features" value={JSON.stringify(features)} />
+    <input type="hidden" name="sizes" value={JSON.stringify(productSizes)} />
+
     <!-- Main Content -->
     <div class="space-y-6 lg:col-span-2">
       <!-- Basic Info -->
       <Card>
         <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
+          <CardTitle>Description & Content</CardTitle>
+          <CardDescription>Give your product a compelling story</CardDescription
+          >
         </CardHeader>
         <CardContent class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-2">
-              <Label for="name">Product Name *</Label>
-              <Input
-                id="name"
-                name="name"
-                bind:value={name}
-                required
-                placeholder="Enter product name"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label for="slug">Slug *</Label>
-              <Input
-                id="slug"
-                name="slug"
-                bind:value={slug}
-                required
-                placeholder="product-slug"
-              />
-            </div>
+          <div class="space-y-2">
+            <Label for="name">Product Name *</Label>
+            <Input
+              id="name"
+              name="name"
+              bind:value={name}
+              required
+              placeholder="e.g. Premium Ergonomic Chair"
+            />
           </div>
+
           <div class="space-y-2">
             <Label for="shortDescription">Short Description</Label>
             <Input
               id="shortDescription"
               name="shortDescription"
               bind:value={shortDescription}
-              placeholder="Brief product summary"
+              placeholder="A punchy one-liner for your product"
             />
           </div>
+
           <div class="space-y-2">
-            <Label for="description">Full Description *</Label>
-            <Textarea
-              id="description"
-              name="description"
-              bind:value={description}
-              required
-              rows={6}
-              placeholder="Detailed product description"
-            />
+            <div class="flex items-center justify-between mb-1">
+              <Label for="description">Full Description *</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onclick={generateAIPrompt}
+                disabled={isGenerating}
+                class="gap-1.5 h-8"
+              >
+                {#if isGenerating}
+                  <Loader2 class="size-3 animate-spin" />
+                  Generating...
+                {:else}
+                  <Sparkles class="size-3 text-primary" />
+                  AI Writing Assistant
+                {/if}
+              </Button>
+            </div>
+            <div class="rounded-md border bg-card overflow-hidden">
+              <RichEditor bind:value={description} />
+              <input type="hidden" name="description" value={description} />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <!-- Images -->
+      <!-- Features -->
       <Card>
-        <CardHeader>
-          <CardTitle>Images</CardTitle>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <div>
+            <CardTitle>Product Features</CardTitle>
+            <CardDescription>Key specifications for comparison</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            onclick={addFeature}
+            class="gap-1"
+          >
+            <Plus class="size-4" /> Add Feature
+          </Button>
         </CardHeader>
         <CardContent>
-          <div class="grid gap-4 sm:grid-cols-4">
-            {#each imagePreviews as preview, i}
-              <div
-                class="group relative aspect-square overflow-hidden rounded-lg border border-border"
-              >
-                <img
-                  src={preview}
-                  alt="Preview"
-                  class="h-full w-full object-cover"
-                />
-                <button
-                  type="button"
-                  onclick={() => removeImage(i)}
-                  class="absolute right-1 top-1 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <X class="h-3 w-3" />
-                </button>
-              </div>
-            {/each}
-            <label
-              class="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border hover:border-primary"
+          {#if features.length === 0}
+            <div
+              class="text-center py-6 border-2 border-dashed rounded-lg bg-muted/20"
             >
-              <Upload class="h-8 w-8 text-muted-foreground" />
-              <span class="mt-2 text-xs text-muted-foreground">Upload</span>
-              <input
-                type="file"
-                name="images"
-                accept="image/*"
-                multiple
-                class="hidden"
-                onchange={handleImageUpload}
-              />
-            </label>
-          </div>
+              <p class="text-sm text-muted-foreground mb-4">
+                No features added yet. Use the AI Assistant to generate them
+                automatically or add manually.
+              </p>
+              <Button variant="outline" size="sm" onclick={addFeature}
+                >Add First Feature</Button
+              >
+            </div>
+          {:else}
+            <div class="space-y-3">
+              {#each features as feature, i}
+                <div class="flex gap-3 items-start group">
+                  <div class="flex-1">
+                    <Input
+                      bind:value={feature.name}
+                      placeholder="Feature Name (e.g. Material)"
+                    />
+                  </div>
+                  <div class="flex-1">
+                    <Input
+                      bind:value={feature.value}
+                      placeholder="Value (e.g. Premium Leather)"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    onclick={() => removeFeature(i)}
+                    class="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 class="size-4" />
+                  </Button>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </CardContent>
       </Card>
 
-      <!-- Pricing -->
-      <Card>
-        <CardHeader>
-          <CardTitle>Pricing</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-2">
+      <!-- Pricing & Inventory -->
+      <div class="grid gap-6 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Pricing</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-4">
             <div class="space-y-2">
               <Label for="basePrice">Base Price (₦) *</Label>
               <Input
@@ -222,17 +413,30 @@
                 placeholder="0.00"
               />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <Label for="marketPrice">Market Price (₦)</Label>
+                <div title="Current market value for comparison">
+                  <Info class="size-3.5 text-muted-foreground" />
+                </div>
+              </div>
+              <Input
+                id="marketPrice"
+                name="marketPrice"
+                type="number"
+                step="0.01"
+                bind:value={marketPrice}
+                placeholder="Current market price"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-      <!-- Inventory -->
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventory</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-4">
             <div class="space-y-2">
               <Label for="sku">SKU *</Label>
               <Input
@@ -240,16 +444,7 @@
                 name="sku"
                 bind:value={sku}
                 required
-                placeholder="SKU-001"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label for="barcode">Barcode</Label>
-              <Input
-                id="barcode"
-                name="barcode"
-                bind:value={barcode}
-                placeholder="Optional"
+                placeholder="PROD-001"
               />
             </div>
             <div class="space-y-2">
@@ -271,34 +466,211 @@
                 bind:value={lowStockThreshold}
               />
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- Size Variants -->
+      <Card>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <div>
+            <CardTitle>Size Variants</CardTitle>
+            <CardDescription
+              >Manage different prices for different sizes</CardDescription
+            >
           </div>
+          <div class="flex gap-2">
+            {#if data.sizes.length > 0}
+              <div class="group relative">
+                <Button variant="outline" size="sm" type="button" class="gap-1">
+                  Add Size <Plus class="size-4" />
+                </Button>
+                <div
+                  class="absolute right-0 top-full mt-1 w-48 bg-popover border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 divide-y overflow-hidden"
+                >
+                  {#each data.sizes as size}
+                    <button
+                      type="button"
+                      class="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors disabled:opacity-50"
+                      onclick={() => addSize(size.id, size.name)}
+                      disabled={!!productSizes.find(
+                        (ps) => ps.sizeId === size.id,
+                      )}
+                    >
+                      {size.name} ({size.abbreviation})
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {#if productSizes.length === 0}
+            <div
+              class="text-center py-6 bg-muted/10 rounded-lg border-2 border-dashed"
+            >
+              <p class="text-sm text-muted-foreground italic">
+                No size variants added. Suitable for "One Size" products.
+              </p>
+            </div>
+          {:else}
+            <div class="space-y-4">
+              {#each productSizes as pSize, i}
+                <div class="p-4 border rounded-lg bg-card space-y-4 relative">
+                  <div class="flex items-center justify-between">
+                    <Badge
+                      variant="secondary"
+                      class="text-xs font-bold px-2 py-0.5"
+                    >
+                      {data.sizes.find((s) => s.id === pSize.sizeId)?.name}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onclick={() => removeSize(i)}
+                      class="text-muted-foreground hover:text-destructive h-8 w-8"
+                    >
+                      <Trash2 class="size-4" />
+                    </Button>
+                  </div>
+                  <div class="grid gap-4 sm:grid-cols-3">
+                    <div class="space-y-1.5">
+                      <Label class="text-xs">Additional Price (₦)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        bind:value={pSize.additionalPrice}
+                        placeholder="+0.00"
+                      />
+                    </div>
+                    <div class="space-y-1.5">
+                      <Label class="text-xs">Stock</Label>
+                      <Input type="number" bind:value={pSize.stockQuantity} />
+                    </div>
+                    <div class="space-y-1.5">
+                      <Label class="text-xs">SKU</Label>
+                      <Input bind:value={pSize.sku} />
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </CardContent>
       </Card>
 
-      <!-- SEO -->
+      <!-- Images -->
       <Card>
         <CardHeader>
-          <CardTitle>SEO</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-2">
-            <Label for="metaTitle">Meta Title</Label>
-            <Input
-              id="metaTitle"
-              name="metaTitle"
-              bind:value={metaTitle}
-              placeholder="SEO title"
-            />
+          <div class="flex items-center justify-between">
+            <div>
+              <CardTitle>Catalog Images</CardTitle>
+              <CardDescription
+                >Upload files or paste URLs (Auto-resized to &lt;200KB)</CardDescription
+              >
+            </div>
+            {#if isProcessingImage}
+              <div
+                class="flex items-center gap-2 text-xs text-muted-foreground animate-pulse"
+              >
+                <Loader2 class="size-3 animate-spin" />
+                Processing...
+              </div>
+            {/if}
           </div>
-          <div class="space-y-2">
-            <Label for="metaDescription">Meta Description</Label>
-            <Textarea
-              id="metaDescription"
-              name="metaDescription"
-              bind:value={metaDescription}
-              rows={3}
-              placeholder="SEO description"
-            />
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <!-- Image Control Area -->
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label
+              class="flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 hover:border-primary hover:bg-primary/5 transition-all text-center px-4"
+            >
+              <Upload class="size-6 text-muted-foreground mb-2" />
+              <span class="text-sm font-semibold">Click to Upload Files</span>
+              <span class="text-xs text-muted-foreground mt-1"
+                >Supports multiple selection</span
+              >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                class="hidden"
+                onchange={handleImageUpload}
+              />
+            </label>
+
+            <div
+              class="flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-4 space-y-3"
+            >
+              <div class="flex items-center gap-2 w-full">
+                <Link class="size-4 text-muted-foreground shrink-0" />
+                <Input
+                  placeholder="Paste image URL here..."
+                  class="h-9 text-xs"
+                  bind:value={imageUrlInput}
+                  onkeydown={(e) =>
+                    e.key === "Enter" && (e.preventDefault(), handleImageUrl())}
+                />
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                class="w-full h-8 text-xs"
+                onclick={handleImageUrl}
+                disabled={!imageUrlInput || isProcessingImage}
+              >
+                Add from URL
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          <!-- Previews Grid -->
+          <div class="grid gap-4 grid-cols-2 sm:grid-cols-4 md:grid-cols-5">
+            {#each imagePreviews as preview, i}
+              <div
+                class="group relative aspect-square overflow-hidden rounded-lg border bg-muted ring-offset-background transition-all hover:ring-2 hover:ring-primary hover:ring-offset-2"
+              >
+                <img
+                  src={preview}
+                  alt="Preview"
+                  class="h-full w-full object-cover"
+                />
+                <div
+                  class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                >
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    class="h-8 w-8 rounded-full"
+                    onclick={() => removeImage(i)}
+                  >
+                    <Trash2 class="size-4" />
+                  </Button>
+                </div>
+                {#if i === 0}
+                  <div class="absolute left-1.5 top-1.5">
+                    <Badge class="h-5 px-1.5 text-[10px] bg-primary"
+                      >Primary</Badge
+                    >
+                  </div>
+                {/if}
+              </div>
+            {/each}
+
+            {#if imagePreviews.length === 0}
+              <div
+                class="col-span-full py-8 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10"
+              >
+                <ImageIcon class="size-8 opacity-20 mb-2" />
+                <p class="text-sm italic">No images added yet</p>
+              </div>
+            {/if}
           </div>
         </CardContent>
       </Card>
@@ -306,18 +678,72 @@
 
     <!-- Sidebar -->
     <div class="space-y-6">
-      <!-- Status -->
+      <!-- Actions -->
+      <Card class="border-primary/20 shadow-md">
+        <CardContent class="space-y-3 pt-6">
+          <Button
+            type="submit"
+            class="w-full font-bold shadow-sm"
+            disabled={isSubmitting}
+          >
+            {#if isSubmitting}
+              <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+              Creating Product...
+            {:else}
+              Publish Product
+            {/if}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            class="w-full"
+            onclick={() => goto("/admin/products")}
+          >
+            Save as Draft
+          </Button>
+        </CardContent>
+      </Card>
+
+      <!-- Organization -->
       <Card>
         <CardHeader>
-          <CardTitle>Status</CardTitle>
+          <CardTitle>Organization</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <SearchableSelect
+            name="categoryId"
+            label="Category"
+            entityName="Category"
+            bind:value={categoryId}
+            fetchOptions={fetchCategories}
+            placeholder="Search categories..."
+          />
+
+          <MultiSearchableSelect
+            name="tagIds"
+            label="Promotion & Labels"
+            entityName="Tag"
+            bind:selectedIds={selectedTagIds}
+            fetchOptions={fetchTags}
+            placeholder="e.g. Flash Sale, New Arrival"
+          />
+        </CardContent>
+      </Card>
+
+      <!-- Visibility -->
+      <Card>
+        <CardHeader>
+          <CardTitle>Visibility & Status</CardTitle>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="flex items-center justify-between">
-            <Label for="isActive">Active</Label>
+            <Label for="isActive" class="cursor-pointer">Publicly Active</Label>
             <Switch id="isActive" name="isActive" bind:checked={isActive} />
           </div>
           <div class="flex items-center justify-between">
-            <Label for="isFeatured">Featured</Label>
+            <Label for="isFeatured" class="cursor-pointer"
+              >Featured Product</Label
+            >
             <Switch
               id="isFeatured"
               name="isFeatured"
@@ -327,47 +753,31 @@
         </CardContent>
       </Card>
 
-      <!-- Category -->
+      <!-- SEO -->
       <Card>
         <CardHeader>
-          <CardTitle>Category</CardTitle>
+          <CardTitle>SEO Optimization</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Select.Root type="single" name="categoryId" bind:value={categoryId}>
-            <Select.Trigger>
-              <span
-                >{categories.find((c: any) => c.id === categoryId)?.name ||
-                  "Select category"}</span
-              >
-            </Select.Trigger>
-            <Select.Content>
-              {#each categories as cat}
-                <Select.Item value={cat.id}>{cat.name}</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-        </CardContent>
-      </Card>
-
-      <!-- Actions -->
-      <Card>
-        <CardContent class="space-y-2 pt-6">
-          <Button type="submit" class="w-full" disabled={isSubmitting}>
-            {#if isSubmitting}
-              <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            {:else}
-              Create Product
-            {/if}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            class="w-full"
-            onclick={() => goto("/admin/products")}
-          >
-            Cancel
-          </Button>
+        <CardContent class="space-y-4">
+          <div class="space-y-2">
+            <Label for="metaTitle">SEO Title</Label>
+            <Input
+              id="metaTitle"
+              name="metaTitle"
+              bind:value={metaTitle}
+              placeholder="Focus keyword title"
+            />
+          </div>
+          <div class="space-y-2">
+            <Label for="metaDescription">SEO Description</Label>
+            <Textarea
+              id="metaDescription"
+              name="metaDescription"
+              bind:value={metaDescription}
+              rows={3}
+              placeholder="Brief summary for search engines"
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
