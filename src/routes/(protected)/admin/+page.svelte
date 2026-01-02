@@ -22,76 +22,40 @@
 
   let { data }: PageProps = $props();
 
-  // Mock stats - will be replaced with real data
-  const stats = [
+  // Real stats from database
+  const stats = $derived([
     {
       title: "Total Revenue",
-      value: formatPrice(125430),
-      change: "+12.5%",
-      trend: "up",
+      value: formatPrice(data.stats?.totalRevenue || 0),
       icon: DollarSign,
     },
     {
       title: "Total Orders",
-      value: "1,247",
-      change: "+8.2%",
-      trend: "up",
+      value: String(data.stats?.totalOrders || 0),
       icon: ShoppingCart,
     },
     {
       title: "Total Customers",
-      value: "892",
-      change: "+15.3%",
-      trend: "up",
+      value: String(data.customerCount || 0),
       icon: Users,
     },
     {
       title: "Active Products",
-      value: "156",
-      change: "-2.1%",
-      trend: "down",
+      value: String(data.activeProductsCount || 0),
       icon: Package,
     },
-  ];
-
-  const recentOrders = [
-    { id: "ORD-001", customer: "John Doe", total: 12500, status: "pending" },
-    {
-      id: "ORD-002",
-      customer: "Jane Smith",
-      total: 8900,
-      status: "processing",
-    },
-    {
-      id: "ORD-003",
-      customer: "Mike Johnson",
-      total: 45000,
-      status: "shipped",
-    },
-    {
-      id: "ORD-004",
-      customer: "Sarah Williams",
-      total: 3200,
-      status: "delivered",
-    },
-  ];
-
-  const lowStockProducts = [
-    { name: "Nike Air Max 90", stock: 3, threshold: 10 },
-    { name: "Adidas Ultraboost", stock: 5, threshold: 10 },
-    { name: "Puma RS-X", stock: 2, threshold: 10 },
-  ];
+  ]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500";
+        return "bg-muted text-foreground";
       case "processing":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500";
+        return "bg-primary/10 text-primary";
       case "shipped":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-500";
+        return "bg-accent text-accent-foreground";
       case "delivered":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-500";
+        return "bg-primary/20 text-primary";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -128,19 +92,6 @@
             >
               <stat.icon class="h-5 w-5 text-primary" />
             </div>
-            <div
-              class="flex items-center gap-1 text-xs font-medium {stat.trend ===
-              'up'
-                ? 'text-green-600'
-                : 'text-red-600'}"
-            >
-              {#if stat.trend === "up"}
-                <TrendingUp class="h-3 w-3" />
-              {:else}
-                <TrendingDown class="h-3 w-3" />
-              {/if}
-              {stat.change}
-            </div>
           </div>
           <div class="mt-3">
             <p class="text-2xl font-bold text-foreground">{stat.value}</p>
@@ -163,28 +114,34 @@
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
-          {#each recentOrders as order}
-            <div
-              class="flex items-center justify-between rounded-lg border border-border p-3"
-            >
-              <div>
-                <p class="font-medium text-foreground">{order.id}</p>
-                <p class="text-sm text-muted-foreground">{order.customer}</p>
+          {#if data.recentOrders && data.recentOrders.length > 0}
+            {#each data.recentOrders as order}
+              <div
+                class="flex items-center justify-between rounded-lg border border-border p-3"
+              >
+                <div>
+                  <p class="font-medium text-foreground">{order.id}</p>
+                  <p class="text-sm text-muted-foreground">{order.customer}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-medium text-foreground">
+                    {formatPrice(Number(order.total))}
+                  </p>
+                  <span
+                    class="inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize {getStatusColor(
+                      order.status,
+                    )}"
+                  >
+                    {order.status}
+                  </span>
+                </div>
               </div>
-              <div class="text-right">
-                <p class="font-medium text-foreground">
-                  {formatPrice(order.total)}
-                </p>
-                <span
-                  class="inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize {getStatusColor(
-                    order.status,
-                  )}"
-                >
-                  {order.status}
-                </span>
-              </div>
-            </div>
-          {/each}
+            {/each}
+          {:else}
+            <p class="py-4 text-center text-sm text-muted-foreground">
+              No recent orders.
+            </p>
+          {/if}
         </div>
       </CardContent>
     </Card>
@@ -193,7 +150,7 @@
     <Card>
       <CardHeader class="flex flex-row items-center justify-between pb-2">
         <div class="flex items-center gap-2">
-          <AlertTriangle class="h-4 w-4 text-orange-500" />
+          <AlertTriangle class="h-4 w-4 text-destructive" />
           <CardTitle class="text-base font-medium">Low Stock Alert</CardTitle>
         </div>
         <Button variant="ghost" size="sm" href="/admin/inventory">
@@ -203,26 +160,27 @@
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
-          {#each lowStockProducts as product}
-            <div
-              class="flex items-center justify-between rounded-lg border border-border p-3"
-            >
-              <div>
-                <p class="font-medium text-foreground">{product.name}</p>
-                <p class="text-sm text-muted-foreground">
-                  Threshold: {product.threshold}
-                </p>
+          {#if data.lowStockProducts && data.lowStockProducts.length > 0}
+            {#each data.lowStockProducts as product}
+              <div
+                class="flex items-center justify-between rounded-lg border border-border p-3"
+              >
+                <div>
+                  <p class="font-medium text-foreground">{product.name}</p>
+                  <p class="text-sm text-muted-foreground">
+                    Threshold: {product.lowStockThreshold}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="rounded-full bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
+                  >
+                    {product.stockQuantity} left
+                  </span>
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                <span
-                  class="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-500"
-                >
-                  {product.stock} left
-                </span>
-              </div>
-            </div>
-          {/each}
-          {#if lowStockProducts.length === 0}
+            {/each}
+          {:else}
             <p class="py-4 text-center text-sm text-muted-foreground">
               All products are well stocked!
             </p>
@@ -236,7 +194,7 @@
   <Card>
     <CardHeader class="flex flex-row items-center justify-between pb-2">
       <div class="flex items-center gap-2">
-        <Star class="h-4 w-4 text-yellow-500" />
+        <Star class="h-4 w-4 text-primary" />
         <CardTitle class="text-base font-medium">Pending Reviews</CardTitle>
       </div>
       <Button variant="ghost" size="sm" href="/admin/reviews">

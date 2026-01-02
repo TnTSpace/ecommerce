@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import { enhance } from "$app/forms";
+  import { enhance, deserialize } from "$app/forms";
   import { goto } from "$app/navigation";
   import {
     Card,
@@ -57,12 +57,14 @@
   let isPublished = $state(false);
   let metaTitle = $state("");
   let metaDescription = $state("");
-  let images: File[] = $state([]);
-  let imagePreviews: string[] = $state([]);
+  // Image State
+  let uploadedFiles = $state<{ fileId: string; url: string }[]>([]);
   let imageUrlInput = $state("");
   let isProcessingImage = $state(false);
+  let uploadingImages = $state<Set<string>>(new Set());
+  let uploadingPreviews = $state<Map<string, string>>(new Map());
 
-  // Tags & Sizes
+  // Tags & Sizes & Features
   let selectedTagIds = $state<string[]>([]);
   let features = $state<{ name: string; value: string }[]>([]);
   let productSizes = $state<
@@ -75,26 +77,59 @@
     }[]
   >([]);
 
+  async function uploadImageToServer(file: File, tempId: string) {
+    uploadingImages.add(tempId);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("?/uploadImage", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = deserialize(await response.text());
+
+      if (result.type === "success" && result.data?.file) {
+        const file = result.data.file as { id: string; url: string };
+        uploadedFiles = [...uploadedFiles, { fileId: file.id, url: file.url }];
+        toast.success("Image uploaded successfully");
+      } else {
+        const error =
+          result.type === "failure"
+            ? typeof result.data?.error === "string"
+              ? result.data.error
+              : "Upload failed"
+            : "Upload failed";
+        toast.error(error);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      uploadingImages.delete(tempId);
+      uploadingPreviews.delete(tempId);
+    }
+  }
+
   async function processAndAddFile(file: File) {
     isProcessingImage = true;
+    const tempUrl = URL.createObjectURL(file);
+    const tempId = crypto.randomUUID();
+    uploadingPreviews.set(tempId, tempUrl);
+
     try {
-      // Resize to ensure it's under 200KB. WebP usually achieves this easily at 0.8 quality for 1200px.
       const resized = await resizeImage(file, {
         maxWidth: 1200,
         maxHeight: 1200,
         quality: 0.8,
         format: "webp",
       });
-
-      images = [...images, resized];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        imagePreviews = [...imagePreviews, e.target?.result as string];
-      };
-      reader.readAsDataURL(resized);
+      await uploadImageToServer(resized, tempId);
     } catch (error) {
       console.error("Resizing error:", error);
       toast.error(`Failed to process ${file.name}`);
+      uploadingPreviews.delete(tempId);
     } finally {
       isProcessingImage = false;
     }
@@ -103,11 +138,11 @@
   const handleImageUpload = async (e: Event) => {
     const input = e.target as HTMLInputElement;
     if (input.files) {
-      const newFiles = Array.from(input.files);
-      for (const file of newFiles) {
+      const files = Array.from(input.files);
+      for (const file of files) {
         await processAndAddFile(file);
       }
-      input.value = ""; // Reset
+      input.value = "";
     }
   };
 
@@ -118,7 +153,6 @@
     try {
       const response = await fetch(imageUrlInput);
       if (!response.ok) throw new Error("Failed to fetch image");
-
       const blob = await response.blob();
       const fileName = imageUrlInput.split("/").pop() || "image.webp";
       const file = new File([blob], fileName, { type: blob.type });
@@ -127,17 +161,14 @@
       imageUrlInput = "";
     } catch (error) {
       console.error("URL Image error:", error);
-      toast.error(
-        "Failed to load image from URL. Ensure the URL is valid and CORS allowed.",
-      );
+      toast.error("Failed to load image from URL");
     } finally {
       isProcessingImage = false;
     }
   };
 
-  const removeImage = (index: number) => {
-    images = images.filter((_, i) => i !== index);
-    imagePreviews = imagePreviews.filter((_, i) => i !== index);
+  const removeUploadedFile = (index: number) => {
+    uploadedFiles = uploadedFiles.filter((_, i) => i !== index);
   };
 
   const addFeature = () => {
@@ -240,6 +271,7 @@
 
   <form
     method="POST"
+    action="?/create"
     enctype="multipart/form-data"
     use:enhance={() => {
       isSubmitting = true;
@@ -647,12 +679,13 @@
 
           <!-- Previews Grid -->
           <div class="grid gap-4 grid-cols-2 sm:grid-cols-4 md:grid-cols-5">
-            {#each imagePreviews as preview, i}
+            {#each uploadedFiles as f, i (f.fileId)}
               <div
                 class="group relative aspect-square overflow-hidden rounded-lg border bg-muted ring-offset-background transition-all hover:ring-2 hover:ring-primary hover:ring-offset-2"
               >
+                <input type="hidden" name="fileId" value={f.fileId} />
                 <img
-                  src={preview}
+                  src={f.url}
                   alt="Preview"
                   class="h-full w-full object-cover"
                 />
@@ -663,14 +696,15 @@
                     variant="destructive"
                     size="icon"
                     class="h-8 w-8 rounded-full"
-                    onclick={() => removeImage(i)}
+                    type="button"
+                    onclick={() => removeUploadedFile(i)}
                   >
                     <Trash2 class="size-4" />
                   </Button>
                 </div>
                 {#if i === 0}
                   <div class="absolute left-1.5 top-1.5">
-                    <Badge class="h-5 px-1.5 text-[10px] bg-primary"
+                    <Badge class="h-5 px-1.5 text-[10px] bg-primary shadow-sm"
                       >Primary</Badge
                     >
                   </div>
@@ -678,7 +712,27 @@
               </div>
             {/each}
 
-            {#if imagePreviews.length === 0}
+            {#each Array.from(uploadingPreviews.entries()) as [id, preview] (id)}
+              <div
+                class="relative aspect-square overflow-hidden rounded-lg border bg-muted animate-pulse"
+              >
+                <img
+                  src={preview}
+                  alt="Uploading..."
+                  class="h-full w-full object-cover opacity-50 grayscale"
+                />
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="flex flex-col items-center gap-1">
+                    <Loader2 class="size-6 animate-spin text-primary" />
+                    <span class="text-[10px] font-medium text-primary"
+                      >Uploading...</span
+                    >
+                  </div>
+                </div>
+              </div>
+            {/each}
+
+            {#if uploadedFiles.length === 0 && uploadingPreviews.size === 0}
               <div
                 class="col-span-full py-8 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10"
               >

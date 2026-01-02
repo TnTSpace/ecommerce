@@ -24,7 +24,7 @@
   const isSuccess = status === "success";
 </script>
 
-<div class="container mx-auto max-w-3xl px-4 py-12">
+<div class="center mx-auto max-w-3xl px-4 py-12">
   {#if isSuccess && order}
     <div class="text-center">
       <div class="mb-4 flex justify-center">

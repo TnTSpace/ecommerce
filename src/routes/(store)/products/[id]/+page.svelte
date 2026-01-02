@@ -3,7 +3,10 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import * as Tabs from "$lib/components/ui/tabs/index.js";
-  import ProductCard from "$lib/components/store/ProductCard.svelte";
+  import {
+    ProductCard,
+    ProductDetailsView,
+  } from "$lib/components/store/index.js";
   import { formatPrice } from "$lib/fxns";
   import {
     Heart,
@@ -20,7 +23,9 @@
   } from "@lucide/svelte";
   import { cart } from "$lib/store/cart.svelte";
   import { toast } from "svelte-sonner";
-  import ProductDetailsView from "$lib/components/store/ProductDetailsView.svelte";
+
+  import { untrack } from "svelte";
+  import { navigating } from "$app/stores";
 
   let { data }: PageProps = $props();
 
@@ -80,13 +85,94 @@
   // Personalization: Track viewed product
   $effect(() => {
     if (product) {
-      cart.addViewed(product);
+      untrack(() => cart.addViewed(product));
     }
   });
+
+  // SEO: Prepare meta data
+  const siteUrl = 'https://ecommerce.toolsntuts.com';
+  const pageTitle = $derived(product?.metaTitle || `${product?.name} - Ecommerce`);
+  const pageDescription = $derived(
+    product?.metaDescription ||
+    product?.shortDescription ||
+    `${product?.name} - High quality product at ${formatPrice(product?.basePrice || '0')}`
+  );
+  const ogImage = $derived(
+    product?.images?.[0]?.url ||
+    product?.images?.[0]?.imageFile?.url ||
+    `${siteUrl}/og-default.png`
+  );
+  const productUrl = $derived(`${siteUrl}/products/${product?.id}`);
 </script>
 
+<svelte:head>
+  {#if product}
+    <!-- Primary Meta Tags -->
+    <title>{pageTitle}</title>
+    <meta name="title" content={pageTitle} />
+    <meta name="description" content={pageDescription} />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="product" />
+    <meta property="og:url" content={productUrl} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Ecommerce - Your Trusted Retail" />
+    
+    <!-- Product-specific OG tags -->
+    <meta property="product:price:amount" content={product.basePrice} />
+    <meta property="product:price:currency" content="NGN" />
+    {#if product.stockQuantity > 0}
+      <meta property="product:availability" content="in stock" />
+    {:else}
+      <meta property="product:availability" content="out of stock" />
+    {/if}
+    {#if product.category}
+      <meta property="product:category" content={product.category.name} />
+    {/if}
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={productUrl} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+    <meta name="twitter:image" content={ogImage} />
+    
+    <!-- Additional Meta Tags -->
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="canonical" href={productUrl} />
+    
+    <!-- Schema.org Structured Data -->
+    {@html `<script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": "${product.name}",
+      "description": "${pageDescription.replace(/"/g, '\\"')}",
+      "image": "${ogImage}",
+      "sku": "${product.sku}",
+      "offers": {
+        "@type": "Offer",
+        "url": "${productUrl}",
+        "priceCurrency": "NGN",
+        "price": "${product.basePrice}",
+        "availability": "${product.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}",
+        "seller": {
+          "@type": "Organization",
+          "name": "Ecommerce - Your Trusted Retail"
+        }
+      }
+    }
+    <\/script>`}
+  {/if}
+</svelte:head>
+
 {#if product}
-  <div class="container mx-auto max-w-7xl px-4 py-6">
+  <div class="center mx-auto max-w-7xl px-4 py-6">
     <!-- Breadcrumb -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
       <a href="/" class="hover:text-foreground">Home</a>
@@ -106,7 +192,11 @@
       >
     </nav>
 
-    <ProductDetailsView {product} reviewStats={data.reviewStats} />
+    {#if $navigating}
+      <ProductDetailsView.Skeleton />
+    {:else}
+      <ProductDetailsView {product} reviewStats={data.reviewStats} />
+    {/if}
 
     <!-- Related Products -->
     {#if relatedProducts.length > 0}
@@ -121,7 +211,7 @@
     {/if}
   </div>
 {:else}
-  <div class="container mx-auto max-w-7xl px-4 py-12 text-center">
+  <div class="center mx-auto max-w-7xl px-4 py-12 text-center">
     <p class="text-lg text-muted-foreground">Product not found</p>
     <Button class="mt-4" href="/products">Browse Products</Button>
   </div>

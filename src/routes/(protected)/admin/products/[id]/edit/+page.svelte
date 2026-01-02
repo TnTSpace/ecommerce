@@ -59,13 +59,13 @@
   let metaDescription = $state("");
   let isPublished = $state(true);
 
-  // Existing Images
+  // Image State
   let existingImages = $state<any[]>([]);
-  let imagesToUpload: File[] = $state([]);
-  let newImagePreviews: string[] = $state([]);
   let imageUrlInput = $state("");
   let isProcessingImage = $state(false);
-  let deletingImageId = $state<string | null>(null);
+  let uploadingImages = $state<Set<string>>(new Set());
+  let uploadingPreviews = $state<Map<string, string>>(new Map());
+  let deletingImageIds = $state<Set<string>>(new Set());
 
   // Tags & Sizes & Features
   let selectedTagIds = $state<string[]>([]);
@@ -117,23 +117,47 @@
     }
   });
 
+  async function uploadImageToServer(file: File) {
+    const tempId = crypto.randomUUID();
+    uploadingImages.add(tempId);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("?/uploadImage", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = deserialize(await response.text());
+
+      if (result.type === "success" && result.data?.image) {
+        existingImages = [...existingImages, result.data.image];
+        toast.success("Image uploaded and saved");
+      } else {
+        const error =
+          result.type === "failure" ? result.data?.error : "Upload failed";
+        toast.error(error);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      uploadingImages.delete(tempId);
+      await invalidateAll();
+    }
+  }
+
   async function processAndAddFile(file: File) {
     isProcessingImage = true;
     try {
-      // Resize to ensure it's under 200KB.
       const resized = await resizeImage(file, {
         maxWidth: 1200,
         maxHeight: 1200,
         quality: 0.8,
         format: "webp",
       });
-
-      imagesToUpload = [...imagesToUpload, resized];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        newImagePreviews = [...newImagePreviews, e.target?.result as string];
-      };
-      reader.readAsDataURL(resized);
+      await uploadImageToServer(resized);
     } catch (error) {
       console.error("Resizing error:", error);
       toast.error(`Failed to process ${file.name}`);
@@ -145,11 +169,11 @@
   const handleImageUpload = async (e: Event) => {
     const input = e.target as HTMLInputElement;
     if (input.files) {
-      const newFiles = Array.from(input.files);
-      for (const file of newFiles) {
+      const files = Array.from(input.files);
+      for (const file of files) {
         await processAndAddFile(file);
       }
-      input.value = ""; // Reset
+      input.value = "";
     }
   };
 
@@ -172,33 +196,33 @@
         existingImages = [...existingImages, result.data.image];
         imageUrlInput = "";
         toast.success("Image added from URL");
+        await invalidateAll();
       } else {
-        throw new Error(
+        const error =
           result.type === "failure"
             ? result.data?.error
-            : "Failed to upload image",
-        );
+            : "Failed to add image";
+        toast.error(error);
       }
     } catch (error: any) {
       console.error("URL Image error:", error);
-      toast.error(error.message || "Failed to load image from URL");
+      toast.error("Failed to load image from URL");
     } finally {
       isProcessingImage = false;
     }
   };
 
-  const handleDeleteImage = async (imageId: string, url: string) => {
+  const handleDeleteImage = async (image: any) => {
     if (!confirm("Are you sure you want to delete this image?")) return;
 
-    // The url in DB is the directUrl: https://api.minio.toolsntuts.com/products/filename.jpg
-    // The objectId is the part after the bucket name.
-    const urlParts = url.split("/");
-    const objectId = urlParts[urlParts.length - 1];
+    // The url in DB is the directUrl
+    const urlParts = image.url.split("/");
+    const objectId = image.remoteId || urlParts[urlParts.length - 1];
 
-    deletingImageId = imageId;
+    deletingImageIds.add(image.id);
     try {
       const formData = new FormData();
-      formData.append("imageId", imageId);
+      formData.append("imageId", image.id);
       formData.append("objectId", objectId);
 
       const response = await fetch("?/deleteImage", {
@@ -209,18 +233,19 @@
       const result = deserialize(await response.text());
 
       if (result.type === "success") {
-        existingImages = existingImages.filter((img) => img.id !== imageId);
-        toast.success("Image deleted successfully");
+        existingImages = existingImages.filter((img) => img.id !== image.id);
+        toast.success("Image deleted");
         await invalidateAll();
       } else {
-        // @ts-ignore
-        throw new Error(result.data?.error || "Failed to delete image");
+        const error =
+          result.type === "failure" ? result.data?.error : "Delete failed";
+        toast.error(error);
       }
     } catch (error: any) {
       console.error("Delete image error:", error);
-      toast.error(error.message || "Failed to delete image");
+      toast.error("An error occurred during deletion");
     } finally {
-      deletingImageId = null;
+      deletingImageIds.delete(image.id);
     }
   };
 
@@ -734,7 +759,7 @@
           <!-- Previews Grid -->
           <div class="grid gap-4 grid-cols-2 sm:grid-cols-4 md:grid-cols-5">
             <!-- Existing Images -->
-            {#each existingImages as img}
+            {#each existingImages as img (img.id)}
               <div
                 class="group relative aspect-square overflow-hidden rounded-lg border bg-muted shadow-sm hover:border-primary/50 transition-colors"
               >
@@ -750,10 +775,10 @@
                     variant="destructive"
                     size="icon"
                     class="h-8 w-8 rounded-full shadow-lg"
-                    disabled={deletingImageId === img.id}
-                    onclick={() => handleDeleteImage(img.id, img.url)}
+                    disabled={deletingImageIds.has(img.id)}
+                    onclick={() => handleDeleteImage(img)}
                   >
-                    {#if deletingImageId === img.id}
+                    {#if deletingImageIds.has(img.id)}
                       <Loader2 class="size-4 animate-spin" />
                     {:else}
                       <Trash2 class="size-4" />
@@ -770,38 +795,28 @@
               </div>
             {/each}
 
-            <!-- New Previews -->
-            {#each newImagePreviews as preview, i}
+            <!-- Uploading Previews -->
+            {#each Array.from(uploadingPreviews.entries()) as [id, preview] (id)}
               <div
-                class="group relative aspect-square overflow-hidden rounded-lg border bg-muted border-primary/30 ring-offset-background transition-all hover:ring-2 hover:ring-primary hover:ring-offset-2"
+                class="relative aspect-square overflow-hidden rounded-lg border bg-muted animate-pulse"
               >
                 <img
                   src={preview}
-                  alt="New Preview"
-                  class="h-full w-full object-cover"
+                  alt="Uploading..."
+                  class="h-full w-full object-cover opacity-50 grayscale"
                 />
-                <div
-                  class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                >
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    class="h-8 w-8 rounded-full"
-                    onclick={() => removeNewImage(i)}
-                  >
-                    <Trash2 class="size-4" />
-                  </Button>
-                </div>
-                <div class="absolute left-1.5 top-1.5">
-                  <Badge
-                    variant="outline"
-                    class="h-5 px-1.5 text-[10px] bg-background/80">New</Badge
-                  >
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="flex flex-col items-center gap-1">
+                    <Loader2 class="size-6 animate-spin text-primary" />
+                    <span class="text-[10px] font-medium text-primary"
+                      >Uploading...</span
+                    >
+                  </div>
                 </div>
               </div>
             {/each}
 
-            {#if existingImages.length === 0 && newImagePreviews.length === 0}
+            {#if existingImages.length === 0 && uploadingPreviews.size === 0}
               <div
                 class="col-span-full py-8 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10"
               >

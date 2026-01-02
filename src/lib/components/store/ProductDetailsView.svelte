@@ -15,9 +15,14 @@
     RotateCcw,
     ChevronLeft,
     ChevronRight,
+    Loader2,
   } from "@lucide/svelte";
   import { cart } from "$lib/store/cart.svelte";
   import { toast } from "svelte-sonner";
+  import { Zap } from "@lucide/svelte";
+  import QuickPurchaseDialog from "./QuickPurchaseDialog.svelte";
+
+  let showQuickPurchase = $state(false);
 
   interface Props {
     product: any;
@@ -32,6 +37,18 @@
   let selectedSize = $state<string | null>(null);
   let currentImageIndex = $state(0);
   let isWishlisted = $state(false);
+
+  // Get selected size object
+  const selectedSizeData = $derived(
+    product?.sizes?.find((s: any) => s.id === selectedSize) || null
+  );
+
+  // Calculate current price: base price + size additional price
+  const currentPrice = $derived(() => {
+    const base = parseFloat(product?.basePrice || '0');
+    const additional = selectedSizeData ? parseFloat(selectedSizeData.additionalPrice || '0') : 0;
+    return base + additional;
+  });
 
   const productInCart = $derived(
     cart.items.find((item) => item.product.id === product.id),
@@ -59,9 +76,15 @@
   const handleIncrement = () => {
     if (!product) return;
     if (cartQuantity < (product.stockQuantity || 99)) {
-      cart.addItem(product);
+      // Create a modified product object with current price
+      const productWithPrice = {
+        ...product,
+        basePrice: String(currentPrice()), // Use calculated price
+      };
+      cart.addItem(productWithPrice, selectedSize || undefined);
       if (cartQuantity === 0) {
-        toast.success(`${product.name} added to cart`, {
+        const sizeText = selectedSizeData ? ` (${selectedSizeData.size.name})` : '';
+        toast.success(`${product.name}${sizeText} added to cart`, {
           position: "top-center",
         });
       }
@@ -69,9 +92,9 @@
   };
 
   const handleDecrement = () => {
-    if (!product) return;
+    if (!product || !productInCart) return;
     if (cartQuantity > 0) {
-      cart.updateQuantity(product.id, cartQuantity - 1);
+      cart.updateQuantity(productInCart.id, cartQuantity - 1);
     }
   };
 
@@ -89,6 +112,30 @@
       onAddToCart(1);
     } else {
       handleIncrement();
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: `${product.name} - ${formatPrice(currentPrice())}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast.success('Shared successfully!');
+      } else {
+        // Fallback: copy link to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch (error: any) {
+      // User cancelled share or error occurred
+      if (error.name !== 'AbortError') {
+        toast.error('Failed to share');
+      }
     }
   };
 </script>
@@ -182,9 +229,16 @@
 
     <!-- Price -->
     <div class="flex flex-col gap-1">
-      <span class="text-3xl font-bold text-foreground"
-        >{formatPrice(product.basePrice)}</span
-      >
+      <div class="flex items-baseline gap-2">
+        <span class="text-3xl font-bold text-foreground"
+          >{formatPrice(currentPrice())}</span
+        >
+        {#if selectedSizeData && parseFloat(selectedSizeData.additionalPrice) > 0}
+          <span class="text-sm text-muted-foreground"
+            >(+{formatPrice(selectedSizeData.additionalPrice)} for size)</span
+          >
+        {/if}
+      </div>
       {#if hasDiscount}
         <div class="flex items-center gap-2">
           <span class="text-base text-muted-foreground line-through"
@@ -225,7 +279,12 @@
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'bg-background hover:border-primary text-foreground'} disabled:opacity-50"
             >
-              {ps.size?.name || ps.sizeId}
+              {ps.size.name}
+              {#if parseFloat(ps.additionalPrice) > 0}
+                <span class="text-xs opacity-75">
+                  (+{formatPrice(ps.additionalPrice)})
+                </span>
+              {/if}
             </button>
           {/each}
         </div>
@@ -234,7 +293,16 @@
 
     <!-- Actions Toggle -->
     <div class="flex flex-col gap-4">
-      {#if cartQuantity > 0}
+      {#if !cart.isReady || cart.isUpdating}
+        <Button
+          class="w-full rounded-xl font-bold bg-muted/10 text-muted-foreground h-12 border-none animate-pulse"
+          variant="outline"
+          disabled
+        >
+          <Loader2 class="mr-2 h-5 w-5 animate-spin text-primary" />
+          <span class="text-sm">Loading...</span>
+        </Button>
+      {:else if cartQuantity > 0}
         <div class="space-y-2">
           <h4 class="text-sm font-medium text-foreground">Quantity</h4>
           <div class="flex items-center gap-3">
@@ -249,9 +317,9 @@
               >
                 <Minus class="h-4 w-4" />
               </Button>
-              <span class="w-14 text-center text-lg font-bold text-foreground"
-                >{cartQuantity}</span
-              >
+              <span class="w-14 text-center text-lg font-bold text-foreground">
+                {cartQuantity}
+              </span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -266,14 +334,22 @@
         </div>
       {:else}
         <Button
-          class="w-full rounded-xl font-bold shadow-lg shadow-primary/20 h-12"
-          disabled={product.stockQuantity === 0}
+          class="w-full rounded-xl bg-primary shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
           onclick={internalAddToCart}
+          disabled={product.stockQuantity === 0}
         >
           <ShoppingCart class="mr-2 h-5 w-5" />
           Add to Cart
         </Button>
       {/if}
+
+      <Button
+        class="w-full rounded-xl bg-primary shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
+        onclick={() => (showQuickPurchase = true)}
+      >
+        <Zap class="mr-2 h-5 w-5 fill-current" />
+        Buy Now
+      </Button>
 
       <div class="flex gap-3 mt-2">
         <Button
@@ -291,6 +367,7 @@
           variant="outline"
           size="icon"
           class="rounded-xl border-none bg-muted/20 hover:bg-primary/10 hover:text-primary"
+          onclick={handleShare}
         >
           <Share2 class="h-5 w-5" />
         </Button>
@@ -382,3 +459,9 @@
     </Tabs.Root>
   </div>
 {/if}
+
+<QuickPurchaseDialog
+  bind:open={showQuickPurchase}
+  {product}
+  onClose={() => (showQuickPurchase = false)}
+/>

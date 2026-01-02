@@ -30,7 +30,7 @@
   };
 </script>
 
-<div class="container mx-auto max-w-7xl px-4 py-12 md:py-20">
+<div class="center mx-auto max-w-7xl px-4 py-12 md:py-20">
   <div class="grid gap-16 lg:grid-cols-2 lg:items-center">
     <!-- Left Column: Content & Info -->
     <div class="space-y-8 animate-in">

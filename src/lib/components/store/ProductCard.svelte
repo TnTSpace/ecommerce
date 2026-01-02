@@ -8,6 +8,7 @@
     Zap,
     ShoppingCart,
     Minus,
+    Loader2,
   } from "@lucide/svelte";
   import { formatPrice } from "$lib/fxns";
   import { cart } from "$lib/store/cart.svelte";
@@ -32,6 +33,7 @@
       category?: { name: string } | null;
       averageRating?: number;
       reviewCount?: number;
+      sizes?: any[];
     };
     viewMode?: "grid" | "list";
     dealLabel?: string;
@@ -52,6 +54,9 @@
   let isHovered = $state(false);
   let showQuickView = $state(false);
   let showQuickPurchase = $state(false);
+  let isAdding = $state(false);
+  let fullProductData = $state<any>(null);
+  let isLoadingProduct = $state(false);
 
   const primaryImage = $derived(
     product.images?.[0]?.url || "/placeholder-product.jpg",
@@ -76,14 +81,25 @@
     isWishlisted = !isWishlisted;
   };
 
-  const addToCart = (e: MouseEvent) => {
+  const addToCart = async (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    cart.addItem(product);
-    toast.success(`${product.name} added to cart`, {
-      description: "You can view your cart by clicking the icon at the top.",
-      position: "top-center",
-    });
+
+    isAdding = true;
+    try {
+      if (productInCart) {
+        await cart.updateQuantity(productInCart.id, cartQuantity + 1);
+      } else {
+        await cart.addItem(product);
+        toast.success(`${product.name} added to cart`, {
+          description:
+            "You can view your cart by clicking the icon at the top.",
+          position: "top-center",
+        });
+      }
+    } finally {
+      isAdding = false;
+    }
   };
   const categoryInitial = (categoryName: string) => {
     return categoryName
@@ -93,22 +109,68 @@
       .toUpperCase();
   };
   const productInCart = $derived(
-    cart.items.find((item) => item.product.id === product.id),
+    cart.items.find((item) => item.productId === product.id),
   );
   const cartQuantity = $derived(productInCart ? productInCart.quantity : 0);
 
-  const decrementCart = (e: MouseEvent) => {
+  const decrementCart = async (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (cartQuantity > 0) {
-      cart.updateQuantity(product.id, cartQuantity - 1);
+    if (productInCart && cartQuantity > 0) {
+      isAdding = true;
+      try {
+        await cart.updateQuantity(productInCart.id, cartQuantity - 1);
+      } finally {
+        isAdding = false;
+      }
+    }
+  };
+
+  const openQuickView = async (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    isLoadingProduct = true;
+    showQuickView = true;
+    
+    try {
+      // Fetch full product data including sizes
+      const response = await fetch(`/api/products/${product.id}`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        fullProductData = result.data;
+      } else {
+        // Fallback to basic product data
+        fullProductData = product;
+      }
+    } catch (error) {
+      console.error('Failed to load product details:', error);
+      fullProductData = product;
+    } finally {
+      isLoadingProduct = false;
     }
   };
 </script>
 
 {#snippet quantityWidget(isMobileMode: boolean)}
   <div class="flex items-center gap-1">
-    {#if cartQuantity > 0}
+    {#if !cart.isReady || isAdding}
+      <Button
+        variant="outline"
+        class="w-full rounded-xl font-bold bg-muted/20 border-none animate-pulse"
+        disabled
+      >
+        <Loader2 class="mr-2 h-4 w-4 animate-spin text-primary" />
+        <span class="text-sm">
+          {#if !cart.isReady}
+            Loading...
+          {:else}
+            Updating...
+          {/if}
+        </span>
+      </Button>
+    {:else if cartQuantity > 0}
       <div
         class="flex items-center rounded-xl border border-border bg-muted/20"
       >
@@ -121,7 +183,9 @@
           <Minus class="h-4 w-4" />
         </Button>
         <div class="flex min-w-[2rem] items-center justify-center px-1">
-          <span class="text-sm font-bold">{cartQuantity}</span>
+          <span class="text-sm font-bold">
+            {cartQuantity}
+          </span>
         </div>
         <Button
           variant="ghost"
@@ -152,10 +216,7 @@
       variant="outline"
       size="icon"
       class="rounded-xl border-none bg-muted/20 hover:bg-primary/10 hover:text-primary"
-      onclick={(e) => {
-        e.preventDefault();
-        showQuickView = true;
-      }}
+      onclick={openQuickView}
       title="Quick View"
     >
       <Eye class="h-4 w-4" />
@@ -356,8 +417,12 @@
 
 <QuickView
   bind:open={showQuickView}
-  {product}
-  onClose={() => (showQuickView = false)}
+  product={fullProductData || product}
+  isLoading={isLoadingProduct}
+  onClose={() => {
+    showQuickView = false;
+    fullProductData = null;
+  }}
 />
 <QuickPurchaseDialog
   bind:open={showQuickPurchase}

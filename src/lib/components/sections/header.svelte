@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { page } from '$app/state';
-  import BrandLink from '$lib/components/widgets/BrandLink.svelte';
-  import { Home, LayoutDashboard } from '@lucide/svelte';
-  import ModeToggle from '$lib/components/widgets/ModeToggle.svelte';
-  import { Button } from '$lib/components/ui/button';
-  import type { User } from '$lib/auth';
-  import { Role, getNavigation } from '$lib/constants';
-  import AuthDialog from '$lib/authentication/ui/user/auth-dialog.svelte';
+  import { page } from "$app/state";
+  import BrandLink from "$lib/components/widgets/BrandLink.svelte";
+  import { Home, LayoutDashboard, ShoppingCart } from "@lucide/svelte";
+  import ModeToggle from "$lib/components/widgets/ModeToggle.svelte";
+  import { Button } from "$lib/components/ui/button";
+  import type { User } from "$lib/auth";
+  import { Role, getNavigation, Constants } from "$lib/constants";
+  import AuthDialog from "$lib/authentication/ui/user/auth-dialog.svelte";
+  import { cart } from "$lib/store/cart.svelte";
 
   const user = page.data.user as User | undefined;
   const navData = getNavigation(page.url.pathname);
@@ -23,15 +24,39 @@
           <nav class="hidden space-x-2 md:flex">
             {#each navigation as item}
               {#if !user || (user && item.roles.includes(user.role as Role))}
-                <Button href={item.href} variant={isActive(item.href) ? 'default' : 'outline'} size="sm">
+                <Button
+                  href={item.href}
+                  variant={isActive(item.href) ? "default" : "outline"}
+                  size="sm"
+                >
                   <item.icon class="mr-2 h-4 w-4" />
                   {item.name}
                 </Button>
               {/if}
             {/each}
           </nav>
-          <ModeToggle />
-          <AuthDialog />
+
+          <div class="flex items-center gap-2">
+            <ModeToggle />
+
+            <Button
+              variant="outline"
+              size="icon"
+              class="relative rounded-lg"
+              href="/cart"
+            >
+              <ShoppingCart class="size-5" />
+              {#if cart.count > 0}
+                <span
+                  class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-in zoom-in"
+                >
+                  {cart.count}
+                </span>
+              {/if}
+            </Button>
+
+            <AuthDialog />
+          </div>
         </div>
       </div>
     </div>

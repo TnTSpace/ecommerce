@@ -76,6 +76,9 @@ class CategoryCRUDClass extends BaseCRUD<typeof category, Category, NewCategory>
         productCount: countMap.get(cat.id) || 0,
       })) as CategoryWithChildren[];
 
+      // Sort by product count descending
+      categoriesWithCounts.sort((a, b) => (b.productCount || 0) - (a.productCount || 0));
+
       return { success: true, data: categoriesWithCounts };
     } catch (error) {
       return { success: false, data: [], error: error instanceof Error ? error.message : "Failed to get categories" };

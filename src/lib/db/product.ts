@@ -1,4 +1,4 @@
-import { BaseCRUD, eq, and, like, desc, asc, sql, inArray, type CRUDResult, type CRUDListResult } from "./crud";
+import { BaseCRUD, eq, and, or, like, ilike, desc, asc, sql, inArray, type CRUDResult, type CRUDListResult } from "./crud";
 import { product, productImage, productSize, productTag, category, tag, size, type Product, type NewProduct, type ProductImage, type ProductSize } from "./schema";
 import { db } from "./drizzle";
 
@@ -52,18 +52,28 @@ class ProductCRUDClass extends BaseCRUD<typeof product, Product, NewProduct> {
 
       // Get related data
       const [images, sizes, tags, categoryData] = await Promise.all([
-        db.select().from(productImage).where(eq(productImage.productId, result.id)).orderBy(asc(productImage.sortOrder)),
-        db.select().from(productSize).where(eq(productSize.productId, result.id)),
+        db.query.productImage.findMany({
+          where: eq(productImage.productId, result.id),
+          orderBy: (productImage, { asc }) => [asc(productImage.sortOrder)],
+          with: { imageFile: true }
+        }),
+        db.query.productSize.findMany({
+          where: eq(productSize.productId, result.id),
+          with: { size: true }
+        }),
         db.select().from(productTag).where(eq(productTag.productId, result.id)),
-        result.categoryId ? db.select().from(category).where(eq(category.id, result.categoryId)).limit(1) : Promise.resolve([]),
+        result.categoryId ? db.query.category.findFirst({
+          where: eq(category.id, result.categoryId),
+          with: { imageFile: true }
+        }) : Promise.resolve(null),
       ]);
 
       return {
         success: true,
         data: {
           ...result,
-          category: categoryData[0] || null,
-          images,
+          category: categoryData || null,
+          images: images as any,
           sizes,
           tags: tags as any,
         },
@@ -104,7 +114,18 @@ class ProductCRUDClass extends BaseCRUD<typeof product, Product, NewProduct> {
         conditions.push(inArray(product.categoryId, filters.categoryIds));
       }
       if (filters?.search) {
-        conditions.push(like(product.name, `%${filters.search}%`));
+        const searchTerm = `%${filters.search}%`;
+        conditions.push(
+          or(
+            ilike(product.name, searchTerm),
+            ilike(product.description, searchTerm),
+            ilike(product.shortDescription, searchTerm),
+            ilike(product.sku, searchTerm),
+            ilike(product.barcode, searchTerm),
+            ilike(product.metaTitle, searchTerm),
+            ilike(product.metaDescription, searchTerm),
+          ),
+        );
       }
       if (filters?.minPrice !== undefined) {
         conditions.push(sql`${product.basePrice} >= ${filters.minPrice}`);
@@ -128,9 +149,12 @@ class ProductCRUDClass extends BaseCRUD<typeof product, Product, NewProduct> {
       const results = await db.query.product.findMany({
         where: whereClause,
         with: {
-          category: true,
+          category: {
+            with: { imageFile: true }
+          },
           images: {
-            orderBy: (images, { asc }) => [asc(images.sortOrder)]
+            orderBy: (images, { asc }) => [asc(images.sortOrder)],
+            with: { imageFile: true }
           }
         },
         orderBy: (product, { asc, desc }) => {

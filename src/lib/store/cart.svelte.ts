@@ -1,24 +1,34 @@
 import { browser } from '$app/environment';
 
+export interface CartItem {
+  id: string;
+  cartId: string;
+  productId: string;
+  productSizeId: string | null;
+  quantity: number;
+  priceAtAdd: string;
+  product?: any;
+  productSize?: any;
+}
+
 class CartStore {
-  items = $state<{ product: any; quantity: number }[]>([]);
+  items = $state<CartItem[]>([]);
   recentlyViewed = $state<any[]>([]);
+  isLoading = $state(false);
+  isUpdating = $state(false);
+  isReady = $state(false);
 
   constructor() {
     if (browser) {
-      const savedCart = localStorage.getItem('cart');
-      if (savedCart) {
-        try {
-          this.items = JSON.parse(savedCart);
-        } catch (e) {
-          console.error('Failed to parse cart from local storage', e);
-        }
-      }
+      // Load everything from server
+      this.fetchCart();
+
       const savedViewed = localStorage.getItem('recentlyViewed');
       if (savedViewed) {
         try {
           this.recentlyViewed = JSON.parse(savedViewed);
         } catch (e) {
+          // eslint-disable-next-line no-console
           console.error('Failed to parse recently viewed from local storage', e);
         }
       }
@@ -29,47 +39,129 @@ class CartStore {
     return this.items.reduce((acc, item) => acc + item.quantity, 0);
   }
 
-  addItem(product: any) {
-    const existing = this.items.find((item) => item.product.id === product.id);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      this.items.push({ product, quantity: 1 });
-    }
-    this.save();
+  get total() {
+    return this.items.reduce((acc, item) => acc + (parseFloat(item.priceAtAdd) * item.quantity), 0);
   }
 
-  removeItem(productId: string) {
-    this.items = this.items.filter((item) => item.product.id !== productId);
-    this.save();
-  }
-
-  updateQuantity(productId: string, quantity: number) {
-    const item = this.items.find((item) => item.product.id === productId);
-    if (item) {
-      item.quantity = quantity;
-      if (item.quantity <= 0) {
-        this.removeItem(productId);
+  async fetchCart() {
+    if (!browser) return;
+    this.isLoading = true;
+    try {
+      const response = await fetch('/api/cart');
+      const result = await response.json();
+      if (result.success && result.data) {
+        this.items = result.data.items || [];
       }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch cart', e);
+    } finally {
+      this.isLoading = false;
+      this.isReady = true;
     }
-    this.save();
   }
 
-  clear() {
-    this.items = [];
-    this.save();
+  async addItem(product: any, productSizeId?: string) {
+    if (!browser) return;
+    this.isUpdating = true;
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: 1,
+          priceAtAdd: product.basePrice, // Product basePrice now includes size calculation
+          productSizeId
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        await this.fetchCart();
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to add item to cart', e);
+    } finally {
+      this.isUpdating = false;
+    }
+  }
+
+  async removeItem(itemId: string) {
+    if (!browser) return;
+    this.isUpdating = true;
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId })
+      });
+      const result = await response.json();
+      if (result.success) {
+        this.items = this.items.filter((item) => item.id !== itemId);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to remove item from cart', e);
+    } finally {
+      this.isUpdating = false;
+    }
+  }
+
+  async updateQuantity(itemId: string, quantity: number) {
+    if (!browser) return;
+    if (quantity <= 0) {
+      return this.removeItem(itemId);
+    }
+
+    this.isUpdating = true;
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId, quantity })
+      });
+      const result = await response.json();
+      if (result.success) {
+        const item = this.items.find((item) => item.id === itemId);
+        if (item) item.quantity = quantity;
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to update quantity', e);
+    } finally {
+      this.isUpdating = false;
+    }
+  }
+
+  async clear() {
+    if (!browser) return;
+    const cartId = this.items[0]?.cartId;
+    if (!cartId) return;
+
+    this.isUpdating = true;
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearAll: true, cartId })
+      });
+      const result = await response.json();
+      if (result.success) {
+        this.items = [];
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to clear cart', e);
+    } finally {
+      this.isUpdating = false;
+    }
   }
 
   addViewed(product: any) {
     const filtered = this.recentlyViewed.filter((p) => p.id !== product.id);
     this.recentlyViewed = [product, ...filtered].slice(0, 10);
     this.saveViewed();
-  }
-
-  private save() {
-    if (browser) {
-      localStorage.setItem('cart', JSON.stringify(this.items));
-    }
   }
 
   private saveViewed() {

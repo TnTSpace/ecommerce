@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button";
+  import { Button, buttonVariants } from "$lib/components/ui/button";
+  import { cn } from "$lib/utils";
   import { Filter, X } from "@lucide/svelte";
   import { Label } from "$lib/components/ui/label";
   import { Input } from "$lib/components/ui/input";
@@ -123,20 +124,22 @@
 {#if Dialog && Drawer}
   {#if isDesktop}
     <Dialog.Root bind:open>
-      <Dialog.Trigger>
-        {#snippet child({ props }: { props: Record<string, any> })}
-          <Button variant="outline" size="sm" class="h-9 gap-2" {...props}>
-            <Filter class="h-4 w-4" />
-            <span class="hidden sm:inline">Filter</span>
-            {#if activeCount > 0}
-              <span
-                class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground"
-              >
-                {activeCount}
-              </span>
-            {/if}
-          </Button>
-        {/snippet}
+      <Dialog.Trigger
+        class={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "h-9 gap-2",
+        )}
+        type="button"
+      >
+        <Filter class="h-4 w-4" />
+        <span class="hidden sm:inline">Filter</span>
+        {#if activeCount > 0}
+          <span
+            class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground"
+          >
+            {activeCount}
+          </span>
+        {/if}
       </Dialog.Trigger>
       <Dialog.Content class="sm:max-w-[425px]">
         <Dialog.Header>
@@ -150,24 +153,21 @@
     </Dialog.Root>
   {:else}
     <Drawer.Root bind:open>
-      <Drawer.Trigger>
-        {#snippet child({ props }: { props: Record<string, any> })}
-          <Button
-            variant="outline"
-            size="icon"
-            class="h-9 w-9 relative"
-            {...props}
+      <Drawer.Trigger
+        class={cn(
+          buttonVariants({ variant: "outline", size: "icon" }),
+          "h-9 w-9 relative",
+        )}
+        type="button"
+      >
+        <Filter class="h-4 w-4" />
+        {#if activeCount > 0}
+          <span
+            class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground"
           >
-            <Filter class="h-4 w-4" />
-            {#if activeCount > 0}
-              <span
-                class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground"
-              >
-                {activeCount}
-              </span>
-            {/if}
-          </Button>
-        {/snippet}
+            {activeCount}
+          </span>
+        {/if}
       </Drawer.Trigger>
       <Drawer.Content>
         <Drawer.Header class="text-left">

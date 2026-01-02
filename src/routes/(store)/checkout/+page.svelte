@@ -37,7 +37,7 @@
   const total = subtotal + shipping;
 </script>
 
-<div class="container mx-auto max-w-7xl px-4 py-6">
+<div class="center mx-auto max-w-7xl px-4 py-6">
   <h1 class="mb-6 text-2xl font-bold text-foreground">Checkout</h1>
 
   <form
@@ -257,7 +257,6 @@
             <Button
               type="submit"
               class="w-full"
-              size="lg"
               disabled={isSubmitting || items.length === 0}
             >
               {#if isSubmitting}

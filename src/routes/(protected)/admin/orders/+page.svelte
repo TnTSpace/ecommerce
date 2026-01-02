@@ -39,7 +39,7 @@
   let selectedOrder = $state<any>(null);
   let newStatus = $state("");
 
-  const orders = data.orders || [];
+  const orders = $derived(data.orders || []);
 
   const filteredOrders = $derived(
     orders.filter((o: any) => {
@@ -198,9 +198,11 @@
               <Table.Cell>
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal class="h-4 w-4" />
-                    </Button>
+                    {#snippet child({ props })}
+                      <Button {...props} variant="ghost" size="icon">
+                        <MoreHorizontal class="h-4 w-4" />
+                      </Button>
+                    {/snippet}
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content align="end">
                     <DropdownMenu.Item>

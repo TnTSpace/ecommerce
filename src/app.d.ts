@@ -5,8 +5,9 @@ declare global {
 		interface Locals {
 			user: User | undefined;
 			session: Session | undefined;
+			cartSessionId: string | undefined;
 		}
 	}
 }
 
-export {};
+export { };

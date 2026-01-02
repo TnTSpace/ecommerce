@@ -1,6 +1,6 @@
-import type { PageServerLoad } from './$types';
 import { ProductCRUD } from '$lib/db/product';
 import { CategoryCRUD } from '$lib/db/category';
+import { MAX_ITEMS_PER_PAGE } from '$lib/constants';
 
 export const load = (async ({ url }) => {
   const page = parseInt(url.searchParams.get('page') || '1');
@@ -36,7 +36,7 @@ export const load = (async ({ url }) => {
       },
       sort,
       page,
-      20
+      MAX_ITEMS_PER_PAGE
     ),
     CategoryCRUD.getActiveWithCounts(),
   ]);

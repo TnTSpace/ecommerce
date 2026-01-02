@@ -12,7 +12,7 @@ const minioClient = new Client({
 });
 
 const BUCKET_NAME = env.MINIO_BUCKET;
- 
+
 /**
  * Get direct HTTPS object URL (via Traefik)
  */
@@ -56,12 +56,12 @@ export async function getPresignedUrlHttps(
   try {
     // Get the HTTP presigned URL
     const httpUrl = await minioClient.presignedGetObject(bucketName, objectName, expirySeconds);
-    
+
     // Convert HTTP to HTTPS and remove port
     const httpsUrl = httpUrl
       .replace('http://', 'https://')
       .replace(':9000', '');
-    
+
     console.log(`Presigned HTTPS URL: ${httpsUrl}`);
     return httpsUrl;
   } catch (error) {
@@ -126,23 +126,23 @@ export async function uploadFile(
     // Convert File to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
+
     // Add file metadata
     const fileMetadata = {
       'Content-Type': file.type || 'application/octet-stream',
       ...metadata
     };
-    
+
     const result = await minioClient.putObject(
-      bucketName, 
-      objectName, 
-      buffer, 
-      buffer.length, 
+      bucketName,
+      objectName,
+      buffer,
+      buffer.length,
       fileMetadata
     );
-    
+
     console.log('Upload result:', result);
-    
+
     return {
       id: objectName,
       url: getObjectUrl(bucketName, objectName),
@@ -171,13 +171,13 @@ export async function uploadFromBuffer(
   try {
     const metadata = contentType ? { 'Content-Type': contentType } : {};
     const result = await minioClient.putObject(
-      bucketName, 
-      objectName, 
-      buffer, 
-      buffer.length, 
+      bucketName,
+      objectName,
+      buffer,
+      buffer.length,
       metadata
     );
-    
+
     return {
       id: objectName,
       url: getObjectUrl(bucketName, objectName),
@@ -205,18 +205,21 @@ export async function handleFileUpload(
   bucketName: string = BUCKET_NAME,
   customObjectName?: string
 ): Promise<UploadResult> {
+  if (!bucketName) {
+    throw new Error("MINIO_BUCKET environment variable is not defined");
+  }
   try {
     // Ensure bucket exists
     await createBucket(bucketName);
-    
+
     // Generate unique filename if not provided
     const objectName = customObjectName || `${Date.now()}-${file.name}`;
-    
+
     // Upload file and get complete metadata
     const result = await uploadFile(bucketName, objectName, file);
-    
+
     console.log('File uploaded successfully:', result);
-    
+
     return result;
   } catch (error) {
     console.error('Error handling file upload:', error);
@@ -233,15 +236,15 @@ export async function handleMultipleFileUploads(
 ): Promise<UploadResult[]> {
   try {
     await createBucket(bucketName);
-    
+
     const uploadPromises = files.map(async (file) => {
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(7);
       const objectName = `${timestamp}-${randomSuffix}-${file.name}`;
-      
+
       return await uploadFile(bucketName, objectName, file);
     });
-    
+
     return await Promise.all(uploadPromises);
   } catch (error) {
     console.error('Error handling multiple file uploads:', error);
@@ -380,7 +383,7 @@ export async function getObjectBuffer(
   try {
     const dataStream = await minioClient.getObject(bucketName, objectName);
     const chunks: Buffer[] = [];
-    
+
     return new Promise((resolve, reject) => {
       dataStream.on('data', (chunk) => chunks.push(chunk));
       dataStream.on('end', () => resolve(Buffer.concat(chunks)));
@@ -412,7 +415,7 @@ export async function listObjects(
   try {
     const objects: any[] = [];
     const stream = minioClient.listObjects(bucketName, prefix, recursive);
-    
+
     return new Promise((resolve, reject) => {
       stream.on('data', (obj) => objects.push(obj));
       stream.on('end', () => resolve(objects));

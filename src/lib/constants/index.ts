@@ -1,6 +1,6 @@
 import Logo from "$lib/components/icons/logo.svelte";
 import type { iFetchMeta } from "$lib/interface";
-import { FileText, LayoutDashboard, User, Users, Home, Book, Music, Heart, Globe, Lightbulb, Cross, Settings, PackageOpen, Star, Boxes, Image, Tag, Ruler, LineChart } from "@lucide/svelte";
+import { FileText, LayoutDashboard, User, Users, Home, Book, Music, Heart, Globe, Lightbulb, Cross, Settings, PackageOpen, Star, Boxes, Image, Tag, Ruler, LineChart, Package, Store, Phone } from "@lucide/svelte";
 
 export enum Role {
   ADMIN = 'admin',
@@ -19,6 +19,7 @@ export enum Constants {
   AFTERAUTH = '/dashboard',
   SUPPORTEMAIL = 'support@ecommerce.com',
   BRANDWEBSITE = 'https://ecommerce.com',
+  TAGLINE = 'Your trusted retail',
 }
 
 export type FileType = 'audio' | 'video' | 'file' | 'image';
@@ -206,9 +207,15 @@ export const getNavigation = (reference: string) => {
     ],
     publicNav: [
       { name: 'Home', href: '/', icon: Home, roles: homeRoles },
+      { name: 'Products', href: '/products', icon: Package, roles: homeRoles },
+      { name: 'Categories', href: '/categories', icon: Store, roles: homeRoles },
+      { name: 'Contact', href: '/contact', icon: Phone, roles: homeRoles },
     ],
     privateNav: [
       { name: 'Home', href: '/', icon: Home, roles: homeRoles },
+      { name: 'Products', href: '/products', icon: Package, roles: homeRoles },
+      { name: 'Categories', href: '/categories', icon: Store, roles: homeRoles },
+      { name: 'Contact', href: '/contact', icon: Phone, roles: homeRoles },
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: dashboardRoles },
     ],
   };

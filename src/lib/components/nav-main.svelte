@@ -35,25 +35,24 @@
     <Sidebar.Menu class="flex flex-col gap-1">
       {#each items as item (item.title)}
         {#if !item.roles || item.roles.includes(user.role as Role)}
-          <a class="cursor-pointer" href={item.url}>
-            <Sidebar.MenuItem>
-              <Sidebar.MenuButton
-                tooltipContent={item.title}
-                isActive={item.isActive}
-                class={cn(
-                  buttonVariants({
-                    variant: item.isActive ? "outline" : "ghost",
-                  }),
-                  "justify-start cursor-pointer hover:text-current",
-                )}
-              >
-                {#if item.icon}
-                  <item.icon />
-                {/if}
-                <span>{item.title}</span>
-              </Sidebar.MenuButton>
-            </Sidebar.MenuItem>
-          </a>
+          <Sidebar.MenuItem>
+            <Sidebar.MenuButton
+              href={item.url}
+              tooltipContent={item.title}
+              isActive={item.isActive}
+              class={cn(
+                buttonVariants({
+                  variant: item.isActive ? "outline" : "ghost",
+                }),
+                "justify-start cursor-pointer hover:text-current",
+              )}
+            >
+              {#if item.icon}
+                <item.icon />
+              {/if}
+              <span>{item.title}</span>
+            </Sidebar.MenuButton>
+          </Sidebar.MenuItem>
         {/if}
       {/each}
     </Sidebar.Menu>

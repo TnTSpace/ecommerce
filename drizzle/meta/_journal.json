@@ -57,6 +57,13 @@
       "when": 1767344687519,
       "tag": "0007_flawless_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1767356861609,
+      "tag": "0008_simple_scarlet_spider",
+      "breakpoints": true
     }
   ]
 }

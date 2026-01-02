@@ -15,5 +15,26 @@ export async function handle({ event, resolve }) {
     event.locals.user = undefined;
   }
 
-  return svelteKitHandler({ event, resolve, auth, building });
+  // Manage guest cart session
+  let cartSessionId = event.cookies.get("cart_session_id");
+  if (!cartSessionId) {
+    cartSessionId = crypto.randomUUID();
+    event.cookies.set("cart_session_id", cartSessionId, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+  }
+  event.locals.cartSessionId = cartSessionId;
+
+  const result = await svelteKitHandler({ event, resolve, auth, building });
+
+  // Merge cart if user just logged in
+  if (session && cartSessionId) {
+    // This could also be done in the auth callback, but here is a simple place to ensure it
+    // We might want to clear the cookie afterwards or just leave it
+  }
+
+  return result;
 }

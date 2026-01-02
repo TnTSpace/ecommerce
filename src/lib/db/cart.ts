@@ -1,10 +1,10 @@
 import { BaseCRUD, eq, and, sql, type CRUDResult, type CRUDListResult } from "./crud";
-import { cart, cartItem, product, productSize, type Cart, type NewCart, type CartItem, type NewCartItem, type Product, type ProductSize } from "./schema";
+import { cart, cartItem, product, productImage, productSize, size, type Cart, type NewCart, type CartItem, type NewCartItem, type Product, type ProductSize, type Size, type ProductImage } from "./schema";
 import { db } from "./drizzle";
 
 interface CartItemWithProduct extends CartItem {
   product?: Product;
-  productSize?: ProductSize | null;
+  productSize?: (ProductSize & { size?: Size }) | null;
 }
 
 interface CartWithItems extends Cart {
@@ -32,7 +32,7 @@ class CartCRUDClass extends BaseCRUD<typeof cart, Cart, NewCart> {
       if (!userCart) {
         [userCart] = await db
           .insert(cart)
-          .values({ userId })
+          .values({ id: crypto.randomUUID(), userId })
           .returning();
       }
 
@@ -59,7 +59,7 @@ class CartCRUDClass extends BaseCRUD<typeof cart, Cart, NewCart> {
 
         [sessionCart] = await db
           .insert(cart)
-          .values({ sessionId, expiresAt })
+          .values({ id: crypto.randomUUID(), sessionId, expiresAt })
           .returning();
       }
 
@@ -95,11 +95,43 @@ class CartCRUDClass extends BaseCRUD<typeof cart, Cart, NewCart> {
         ? await db.select().from(product).where(sql`${product.id} IN ${productIds}`)
         : [];
 
-      const productMap = new Map(products.map(p => [p.id, p]));
+      // Get images for these products
+      const images = productIds.length > 0
+        ? await db.select().from(productImage).where(sql`${productImage.productId} IN ${productIds}`)
+        : [];
+
+      const imageMap = new Map<string, any[]>();
+      images.forEach(img => {
+        const existing = imageMap.get(img.productId) || [];
+        imageMap.set(img.productId, [...existing, img]);
+      });
+
+      const productMap = new Map(products.map(p => [p.id, { ...p, images: imageMap.get(p.id) || [] }]));
+
+      // Get size details for each item
+      const productSizeIds = [...new Set(items.map(i => i.productSizeId).filter(id => id !== null))] as string[];
+      let productSizeMap = new Map<string, ProductSize & { size?: Size }>();
+
+      if (productSizeIds.length > 0) {
+        const productSizes = await db
+          .select()
+          .from(productSize)
+          .where(sql`${productSize.id} IN ${productSizeIds}`);
+
+        const sizeIds = [...new Set(productSizes.map(ps => ps.sizeId))];
+        const sizes = await db.select().from(size).where(sql`${size.id} IN ${sizeIds}`);
+        const sizeMap = new Map(sizes.map(s => [s.id, s]));
+
+        productSizeMap = new Map(productSizes.map(ps => [
+          ps.id,
+          { ...ps, size: sizeMap.get(ps.sizeId) }
+        ]));
+      }
 
       const itemsWithProducts: CartItemWithProduct[] = items.map(item => ({
         ...item,
         product: productMap.get(item.productId),
+        productSize: item.productSizeId ? productSizeMap.get(item.productSizeId) : null,
       }));
 
       const subtotal = itemsWithProducts.reduce((sum, item) => {
@@ -158,7 +190,14 @@ class CartCRUDClass extends BaseCRUD<typeof cart, Cart, NewCart> {
       // Create new item
       const [newItem] = await db
         .insert(cartItem)
-        .values({ cartId, productId, productSizeId, quantity, priceAtAdd })
+        .values({
+          id: crypto.randomUUID(),
+          cartId,
+          productId,
+          productSizeId,
+          quantity,
+          priceAtAdd
+        })
         .returning();
 
       // Update cart updatedAt

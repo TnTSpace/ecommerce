@@ -1,23 +1,27 @@
 import type { PageServerLoad } from './$types';
 import { CartCRUD } from '$lib/db/cart';
-import { auth } from '$lib/auth';
+import { jumiaShipping } from '$lib/server/shipping';
 
-export const load = (async ({ request, cookies }) => {
-  const session = await auth.api.getSession({ headers: request.headers });
+export const load = (async ({ locals }) => {
+  const userId = locals.user?.id;
+  const sessionId = locals.cartSessionId;
 
-  let cart = null;
+  let cartResult = null;
 
-  if (session?.user) {
-    const result = await CartCRUD.getOrCreateForUser(session.user.id);
-    cart = result.data;
-  } else {
-    // Check for guest session
-    const sessionId = cookies.get('cart_session');
+  if (userId) {
+    // If user is logged in, attempt to merge guest cart first
     if (sessionId) {
-      const result = await CartCRUD.getOrCreateForSession(sessionId);
-      cart = result.data;
+      await CartCRUD.mergeGuestCart(sessionId, userId);
     }
+    cartResult = await CartCRUD.getOrCreateForUser(userId);
+  } else if (sessionId) {
+    cartResult = await CartCRUD.getOrCreateForSession(sessionId);
   }
 
-  return { cart };
+  const zones = await jumiaShipping.getZones();
+
+  return {
+    cart: cartResult?.data,
+    shippingZones: zones
+  };
 }) satisfies PageServerLoad;

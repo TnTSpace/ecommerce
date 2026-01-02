@@ -17,7 +17,7 @@
 </script>
 
 <div
-  class="container mx-auto max-w-2xl px-4 py-20 min-h-[70vh] flex flex-col items-center justify-center text-center"
+  class="center mx-auto max-w-2xl px-4 py-20 min-h-[70vh] flex flex-col items-center justify-center text-center"
 >
   {#if isSuccess}
     <div

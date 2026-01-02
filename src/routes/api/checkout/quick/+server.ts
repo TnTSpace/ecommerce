@@ -7,9 +7,9 @@ import { ProductCRUD } from '$lib/db/product';
 
 export const POST: RequestHandler = async ({ request, url }) => {
   const session = await auth.api.getSession({ headers: request.headers });
-  const { productId, email, fullName, phone, amount } = await request.json();
+  const { productId, email, fullName, phone, zoneId, city, shippingCost } = await request.json();
 
-  if (!productId || !email || !fullName || !phone) {
+  if (!productId || !email || !fullName || !phone || !zoneId || !city) {
     return json({ success: false, error: 'Missing required fields' }, { status: 400 });
   }
 
@@ -23,15 +23,17 @@ export const POST: RequestHandler = async ({ request, url }) => {
   // Create shipping address object
   const shippingAddress = {
     fullName,
-    addressLine1: 'Quick Purchase', // Placeholder
-    city: 'Quick Purchase',
-    state: 'Quick Purchase',
+    addressLine1: `Quick Purchase - ${city}`,
+    city,
+    state: zoneId, // Using zone name as state for now
     country: 'NG',
     phone
   };
 
-  // Calculate total (just 1 item for quick purchase)
-  const total = parseFloat(product.basePrice);
+  // Calculate total
+  const subtotal = parseFloat(product.basePrice);
+  const totalShipping = parseFloat(shippingCost) || 0;
+  const total = subtotal + totalShipping;
 
   // Create order item
   const orderItems = [{
@@ -50,9 +52,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
       guestEmail: session?.user ? null : email,
       status: 'pending',
       paymentStatus: 'pending',
-      subtotal: total.toFixed(2),
+      subtotal: subtotal.toFixed(2),
       tax: '0.00',
-      shippingCost: '0.00',
+      shippingCost: totalShipping.toFixed(2),
       total: total.toFixed(2),
       shippingAddress: shippingAddress as any,
       billingAddress: shippingAddress as any,

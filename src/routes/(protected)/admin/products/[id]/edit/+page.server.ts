@@ -4,7 +4,8 @@ import { ProductCRUD } from '$lib/db/product';
 import { TagCRUD } from '$lib/db/tag';
 import { SizeCRUD } from '$lib/db/size';
 import { CategoryCRUD } from '$lib/db/category';
-import { handleFileUpload, deleteFileById } from '$lib/server/minio';
+import { FileCRUD } from '$lib/db/file';
+import { deleteFileById } from '$lib/server/minio';
 import { db } from '$lib/db/drizzle';
 import { productImage, productTag, productSize } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -131,7 +132,7 @@ export const actions: Actions = {
         }
       }
 
-      // Handle new images
+      // Handle new images (fallback for traditional form submission if needed, though we prefer immediate)
       const validImages = images.filter(img => img.size > 0);
       if (validImages.length > 0) {
         // Get current max sort order
@@ -139,22 +140,25 @@ export const actions: Actions = {
         let maxSortOrder = currentImages.reduce((max, img) => Math.max(max, img.sortOrder), -1);
 
         for (let i = 0; i < validImages.length; i++) {
-          const file = validImages[i];
-          const uploadResult = await handleFileUpload(file, 'products');
+          const fileData = validImages[i];
+          const uploadResult = await FileCRUD.upload(fileData, 'products');
 
-          await db.insert(productImage).values({
-            id: crypto.randomUUID(),
-            productId,
-            url: uploadResult.url,
-            remoteId: uploadResult.id,
-            altText: name,
-            sortOrder: ++maxSortOrder,
-            isPrimary: maxSortOrder === 0,
-          });
+          if (uploadResult.success && uploadResult.data) {
+            await db.insert(productImage).values({
+              id: crypto.randomUUID(),
+              productId,
+              fileId: uploadResult.data.id,
+              url: uploadResult.data.url,
+              remoteId: uploadResult.data.remoteId,
+              altText: name,
+              sortOrder: ++maxSortOrder,
+              isPrimary: maxSortOrder === 0,
+            });
+          }
         }
       }
 
-      return { success: true };
+      throw redirect(303, '/admin/products');
     } catch (error) {
       if (typeof error === 'object' && error !== null && 'status' in error && 'location' in error) {
         throw error;
@@ -178,6 +182,49 @@ export const actions: Actions = {
       return fail(500, { error: message });
     }
   },
+  uploadImage: async ({ request, params }) => {
+    const productId = params.id;
+    const formData = await request.formData();
+    const file = formData.get('image') as File;
+
+    if (!file || file.size === 0) {
+      return fail(400, { error: 'No image provided' });
+    }
+
+    try {
+      const uploadResult = await FileCRUD.upload(file, 'products');
+
+      if (!uploadResult.success || !uploadResult.data) {
+        throw new Error(uploadResult.error || 'Failed to upload image');
+      }
+
+      // Get current max sort order
+      const currentImages = await db.select().from(productImage).where(eq(productImage.productId, productId));
+      const maxSortOrder = currentImages.reduce((max, img) => Math.max(max, img.sortOrder), -1);
+
+      const [newImage] = await db.insert(productImage).values({
+        id: crypto.randomUUID(),
+        productId,
+        fileId: uploadResult.data.id,
+        url: uploadResult.data.url,
+        remoteId: uploadResult.data.remoteId,
+        altText: 'Product Image',
+        sortOrder: maxSortOrder + 1,
+        isPrimary: maxSortOrder === -1,
+      }).returning();
+
+      // Return image with file metadata
+      return {
+        image: {
+          ...newImage,
+          imageFile: uploadResult.data
+        }
+      };
+    } catch (error) {
+      console.error('Upload image error:', error);
+      return fail(500, { error: error instanceof Error ? error.message : 'Failed to upload image' });
+    }
+  },
   uploadImageUrl: async ({ request, params }) => {
     const productId = params.id;
     const formData = await request.formData();
@@ -195,7 +242,11 @@ export const actions: Actions = {
       const filename = url.split('/').pop()?.split('?')[0] || 'image.webp';
       const file = new File([blob], filename, { type: blob.type });
 
-      const uploadResult = await handleFileUpload(file, 'products');
+      const uploadResult = await FileCRUD.upload(file, 'products');
+
+      if (!uploadResult.success || !uploadResult.data) {
+        throw new Error(uploadResult.error || 'Failed to upload image from URL');
+      }
 
       // Get current max sort order
       const currentImages = await db.select().from(productImage).where(eq(productImage.productId, productId));
@@ -204,14 +255,20 @@ export const actions: Actions = {
       const [newImage] = await db.insert(productImage).values({
         id: crypto.randomUUID(),
         productId,
-        url: uploadResult.url,
-        remoteId: uploadResult.id,
+        fileId: uploadResult.data.id,
+        url: uploadResult.data.url,
+        remoteId: uploadResult.data.remoteId,
         altText: 'Product Image',
         sortOrder: maxSortOrder + 1,
         isPrimary: maxSortOrder === -1,
       }).returning();
 
-      return { image: newImage };
+      return {
+        image: {
+          ...newImage,
+          imageFile: uploadResult.data
+        }
+      };
     } catch (error) {
       console.error('Upload image URL error:', error);
       return fail(500, { error: 'Failed to upload image from URL' });

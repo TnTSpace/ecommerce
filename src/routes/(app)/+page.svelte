@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import ProductCard from "$lib/components/store/ProductCard.svelte";
+  import { ProductCard } from "$lib/components/store/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { cart } from "$lib/store/cart.svelte";
@@ -15,20 +15,70 @@
     History,
     Package,
   } from "@lucide/svelte";
+  import { navigating } from "$app/stores";
+  import { onMount, untrack } from "svelte";
+  import { MAX_ITEMS_PER_PAGE } from "$lib/constants";
+  import { Loader2 } from "@lucide/svelte";
 
   let { data }: PageProps = $props();
 
   const featuredProducts = $derived(data.featuredProducts || []);
-  const newArrivals = $derived(data.newArrivals || []);
   const categories = $derived(data.categories || []);
-
-  // Personalization: Recently Viewed
   const recentlyViewed = $derived(cart.recentlyViewed);
+
+  // New Arrivals Infinite Scroll State
+  let allNewArrivals = $state(untrack(() => data.newArrivals || []));
+  let currentPage = $state(untrack(() => data.newArrivalsMeta?.page || 1));
+  let totalPages = $state(untrack(() => data.newArrivalsMeta?.totalPages || 1));
+  let isLoadingMore = $state(false);
+  let observerTarget = $state<HTMLElement | null>(null);
+
+  const loadMore = async () => {
+    if (isLoadingMore || currentPage >= totalPages) return;
+
+    isLoadingMore = true;
+    try {
+      const params = new URLSearchParams();
+      params.set("page", (currentPage + 1).toString());
+      params.set("limit", MAX_ITEMS_PER_PAGE.toString());
+      params.set("sort", "newest"); // Force newest for Arrivals
+
+      const res = await fetch(`/api/all-products?${params.toString()}`);
+      const result = await res.json();
+
+      if (result.success && result.data) {
+        allNewArrivals = [...allNewArrivals, ...result.data];
+        currentPage = result.meta.page;
+        totalPages = result.meta.totalPages;
+      }
+    } catch (e) {
+      console.error("Failed to load more new arrivals:", e);
+    } finally {
+      isLoadingMore = false;
+    }
+  };
+
+  onMount(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget) observer.observe(observerTarget);
+
+    return () => {
+      if (observerTarget) observer.unobserve(observerTarget);
+    };
+  });
 </script>
 
-<div class="space-y-16 pb-20">
+<div class="space-y-8 pb-8">
   <!-- Modern Store Hero Section -->
-  <section class="relative overflow-hidden bg-background pt-12 lg:pt-20">
+  <section class="relative overflow-hidden bg-background pt-8">
     <div
       class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
     >
@@ -37,7 +87,7 @@
       ></div>
     </div>
 
-    <div class="container mx-auto px-2">
+    <div class="center mx-auto px-2">
       <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
         <div
           class="max-w-2xl space-y-8 animate-in slide-in-from-left-10 duration-700"
@@ -64,7 +114,6 @@
           <div class="flex flex-wrap gap-4">
             <Button
               href="/products"
-              size="lg"
               class="rounded-xl px-8 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
             >
               Shop Now
@@ -73,7 +122,6 @@
             <Button
               href="/categories"
               variant="outline"
-              size="lg"
               class="rounded-xl px-8 font-bold backdrop-blur-sm transition-all hover:bg-accent"
             >
               Browse Categories
@@ -103,7 +151,7 @@
   </section>
 
   <!-- Features Icons -->
-  <section class="container mx-auto px-2">
+  <section class="center mx-auto px-2">
     <div
       class="grid grid-cols-2 md:grid-cols-4 gap-6 rounded-xl border border-border bg-card p-8 shadow-sm"
     >
@@ -147,7 +195,7 @@
   </section>
 
   <!-- Categories Highlights -->
-  <section class="container mx-auto px-2">
+  <section class="center mx-auto px-2">
     <div class="flex items-center justify-between mb-8">
       <div>
         <h2 class="text-3xl font-bold">
@@ -162,9 +210,9 @@
       </Button>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
       {#each categories as category}
-        <a href="/products?category={category.id}" class="group space-y-3">
+        <a href="/products?category={category.id}" class="group space-y-1">
           <div
             class="relative aspect-square overflow-hidden rounded-xl bg-muted border border-border group-hover:border-primary transition-all flex items-center justify-center"
           >
@@ -195,7 +243,7 @@
   <!-- Personalization: Recently Viewed -->
   {#if recentlyViewed.length > 0}
     <section class="bg-muted/30 py-16">
-      <div class="container mx-auto px-2">
+      <div class="center mx-auto px-2">
         <div class="flex items-center gap-3 mb-8">
           <div
             class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"
@@ -215,16 +263,22 @@
         <div
           class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2"
         >
-          {#each recentlyViewed.slice(0, 6) as product}
-            <ProductCard {product} />
-          {/each}
+          {#if $navigating}
+            {#each Array(recentlyViewed.slice(0, 6).length || 6) as _}
+              <ProductCard.Skeleton />
+            {/each}
+          {:else}
+            {#each recentlyViewed.slice(0, 6) as product}
+              <ProductCard {product} />
+            {/each}
+          {/if}
         </div>
       </div>
     </section>
   {/if}
 
   <!-- Featured Products -->
-  <section class="container mx-auto px-2">
+  <section class="center mx-auto px-2">
     <div class="flex items-center justify-between mb-10">
       <div>
         <h2 class="text-3xl font-bold">
@@ -239,15 +293,23 @@
       </Button>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-      {#each featuredProducts as product}
-        <ProductCard {product} dealLabel="Trending" />
-      {/each}
+    <div
+      class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2"
+    >
+      {#if $navigating}
+        {#each Array(featuredProducts.length || 6) as _}
+          <ProductCard.Skeleton />
+        {/each}
+      {:else}
+        {#each featuredProducts as product}
+          <ProductCard {product} dealLabel="Trending" />
+        {/each}
+      {/if}
     </div>
   </section>
 
   <!-- Brand Banner -->
-  <section class="container mx-auto px-2">
+  <section class="center mx-auto px-2">
     <div
       class="relative overflow-hidden rounded-xl bg-primary px-8 py-12 md:py-16 text-primary-foreground shadow-lg"
     >
@@ -268,7 +330,6 @@
           <Button
             href="/register"
             variant="secondary"
-            size="lg"
             class="rounded-xl font-bold px-10 shadow-lg transition-all hover:-translate-y-1"
           >
             Get Exclusive Access
@@ -279,7 +340,7 @@
   </section>
 
   <!-- New Arrivals -->
-  <section class="container mx-auto px-2">
+  <section class="center mx-auto px-2">
     <div class="flex items-center justify-between mb-10">
       <div>
         <h2 class="text-3xl font-bold">
@@ -289,10 +350,39 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-      {#each newArrivals as product}
-        <ProductCard {product} />
-      {/each}
+    <div
+      class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2"
+    >
+      {#if $navigating}
+        {#each Array(allNewArrivals.length || 6) as _}
+          <ProductCard.Skeleton />
+        {/each}
+      {:else}
+        {#each allNewArrivals as product}
+          <ProductCard {product} />
+        {/each}
+      {/if}
     </div>
+
+    <!-- Infinite Scroll Loader -->
+    {#if currentPage < totalPages}
+      <div
+        bind:this={observerTarget}
+        class="py-20 flex flex-col items-center justify-center gap-4"
+      >
+        <div
+          class="h-10 w-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary animate-spin"
+        >
+          <Loader2 class="h-6 w-6" />
+        </div>
+        <p
+          class="text-xs font-bold text-muted-foreground uppercase tracking-widest"
+        >
+          Fresh arrivals incoming...
+        </p>
+      </div>
+    {/if}
+
+    <div class="pb-20"></div>
   </section>
 </div>

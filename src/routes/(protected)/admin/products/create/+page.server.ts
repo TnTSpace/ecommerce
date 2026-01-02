@@ -4,7 +4,7 @@ import { CategoryCRUD } from '$lib/db/category';
 import { ProductCRUD } from '$lib/db/product';
 import { TagCRUD } from '$lib/db/tag';
 import { SizeCRUD } from '$lib/db/size';
-import { handleFileUpload } from '$lib/server/minio';
+import { FileCRUD } from '$lib/db/file';
 import { db } from '$lib/db/drizzle';
 import { productImage, productTag, productSize } from '$lib/db/schema';
 
@@ -23,7 +23,7 @@ export const load = (async () => {
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {
-  default: async ({ request }) => {
+  create: async ({ request }) => {
     const formData = await request.formData();
 
     const name = formData.get('name') as string;
@@ -122,20 +122,30 @@ export const actions: Actions = {
         }
       }
 
-      // Upload images
-      const validImages = images.filter(img => img.size > 0);
-      for (let i = 0; i < validImages.length; i++) {
-        const file = validImages[i];
-        const uploadResult = await handleFileUpload(file, 'products');
-
-        await db.insert(productImage).values({
-          id: crypto.randomUUID(),
-          productId,
-          url: uploadResult.directUrl,
-          altText: name,
-          sortOrder: i,
-          isPrimary: i === 0,
-        });
+      // Handle images (from immediate uploads)
+      const fileIds = formData.getAll('fileId') as string[];
+      if (fileIds.length > 0) {
+        const imageInserts = [];
+        for (let i = 0; i < fileIds.length; i++) {
+          const fileId = fileIds[i];
+          // Get the file details to get the URL
+          const fileData = await FileCRUD.getById(fileId);
+          if (fileData.success && fileData.data) {
+            imageInserts.push({
+              id: crypto.randomUUID(),
+              productId,
+              fileId: fileId,
+              url: fileData.data.url,
+              remoteId: fileData.data.remoteId,
+              altText: name,
+              sortOrder: i,
+              isPrimary: i === 0,
+            });
+          }
+        }
+        if (imageInserts.length > 0) {
+          await db.insert(productImage).values(imageInserts);
+        }
       }
 
       throw redirect(303, '/admin/products');
@@ -162,6 +172,29 @@ export const actions: Actions = {
       }
 
       return fail(500, { error: message });
+    }
+  },
+  uploadImage: async ({ request }) => {
+    const formData = await request.formData();
+    const file = formData.get('image') as File;
+
+    if (!file || file.size === 0) {
+      return fail(400, { error: 'No image provided' });
+    }
+
+    try {
+      const uploadResult = await FileCRUD.upload(file, 'products');
+
+      if (!uploadResult.success || !uploadResult.data) {
+        throw new Error(uploadResult.error || 'Failed to upload image');
+      }
+
+      return { file: uploadResult.data };
+    } catch (error) {
+      console.error('[UploadAction] Error:', error);
+      return fail(500, {
+        error: error instanceof Error ? error.message : 'Internal Server Error during upload'
+      });
     }
   },
 };

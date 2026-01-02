@@ -8,10 +8,11 @@
   interface Props {
     open: boolean;
     product: any;
+    isLoading?: boolean;
     onClose: () => void;
   }
 
-  let { open = $bindable(), product, onClose }: Props = $props();
+  let { open = $bindable(), product, isLoading = false, onClose }: Props = $props();
 
   let isMobile = $state(false);
 
@@ -38,7 +39,7 @@
   {#if !isMobile}
     <Dialog.Root {open} onOpenChange={handleOpenChange}>
       <Dialog.Content
-        class="max-w-4xl max-h-[90vh] overflow-hidden p-0 rounded-xl border-none shadow-lg"
+        class="w-full !max-w-4xl max-h-[90vh] overflow-hidden p-0 rounded-xl border-none shadow-lg"
       >
         <ScrollArea class="h-full max-h-[90vh] p-8">
           <ProductDetailsView {product} />

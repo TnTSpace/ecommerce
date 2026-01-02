@@ -97,6 +97,7 @@ export const product = pgTable("product", {
 export const productImage = pgTable("product_image", {
   id: text("id").primaryKey(),
   productId: text("product_id").notNull().references(() => product.id, { onDelete: "cascade" }),
+  fileId: text("file_id").references(() => file.id, { onDelete: "set null" }),
   url: text("url").notNull(),
   remoteId: text("remote_id"),
   altText: text("alt_text"),
@@ -319,6 +320,7 @@ export const productRelations = relations(product, ({ one, many }) => ({
 
 export const productImageRelations = relations(productImage, ({ one }) => ({
   product: one(product, { fields: [productImage.productId], references: [product.id] }),
+  imageFile: one(file, { fields: [productImage.fileId], references: [file.id] }),
 }));
 
 export const sizeRelations = relations(size, ({ many }) => ({
