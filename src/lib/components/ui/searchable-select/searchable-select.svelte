@@ -43,7 +43,7 @@
   let hasSearched = $state(false);
   let searchResults = $state<Item[]>([]);
   let searchQuery = $state("");
-  let selectedItem = $state<Item | null>(initialItem);
+  let selectedItem = $state<Item | null>(null);
 
   // Sync selectedItem with initialItem on mount and when initialItem changes
   $effect(() => {

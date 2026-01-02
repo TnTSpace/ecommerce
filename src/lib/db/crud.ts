@@ -1,5 +1,5 @@
 import { db } from "./drizzle";
-import { eq, and, or, like, desc, asc, sql, type SQL } from "drizzle-orm";
+import { eq, and, or, like, desc, asc, sql, inArray, type SQL } from "drizzle-orm";
 
 export interface PaginationParams {
   page?: number;
@@ -278,4 +278,4 @@ export abstract class BaseCRUD<TTable, TSelect, TInsert> {
 }
 
 // Re-export useful drizzle operators
-export { eq, and, or, like, desc, asc, sql };
+export { eq, and, or, like, desc, asc, sql, inArray };

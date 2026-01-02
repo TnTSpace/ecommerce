@@ -6,11 +6,13 @@ import { category, product } from '$lib/db/schema';
 import { sql, eq, asc } from 'drizzle-orm';
 
 export const load = (async () => {
-  // Get all categories
-  const categories = await db
-    .select()
-    .from(category)
-    .orderBy(asc(category.sortOrder));
+  // Get all categories with images
+  const categories = await db.query.category.findMany({
+    with: {
+      imageFile: true
+    },
+    orderBy: asc(category.sortOrder)
+  });
 
   // Get product counts per category
   const productCounts = await db

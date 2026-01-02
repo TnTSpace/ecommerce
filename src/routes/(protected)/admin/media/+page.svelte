@@ -38,9 +38,11 @@
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith("image/")) return Image;
-    if (mimeType.startsWith("video/")) return Film;
+  const getFileIcon = (url: string) => {
+    const ext = url.split(".").pop()?.toLowerCase();
+    if (ext && ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext))
+      return Image;
+    if (ext && ["mp4", "webm", "ogg"].includes(ext)) return Film;
     return FileText;
   };
 
@@ -96,14 +98,14 @@
         class="group relative rounded-lg border bg-card overflow-hidden transition-all hover:ring-2 hover:ring-primary"
       >
         <div class="aspect-square flex items-center justify-center bg-muted">
-          {#if file.mimeType.startsWith("image/")}
+          {#if file.url.match(/\.(jpg|jpeg|png|gif|webp|svg)/i)}
             <img
               src={file.url}
-              alt={file.originalName}
+              alt={file.remoteId}
               class="h-full w-full object-cover"
             />
           {:else}
-            {@const Icon = getFileIcon(file.mimeType)}
+            {@const Icon = getFileIcon(file.url)}
             <Icon class="size-10 text-muted-foreground" />
           {/if}
 
@@ -144,8 +146,8 @@
           </div>
         </div>
         <div class="p-2 border-t">
-          <p class="text-xs font-medium truncate" title={file.originalName}>
-            {file.originalName}
+          <p class="text-xs font-medium truncate" title={file.remoteId}>
+            {file.remoteId}
           </p>
           <p class="text-[10px] text-muted-foreground">
             {formatSize(file.size)}

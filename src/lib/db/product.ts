@@ -1,4 +1,4 @@
-import { BaseCRUD, eq, and, like, desc, asc, sql, type CRUDResult, type CRUDListResult } from "./crud";
+import { BaseCRUD, eq, and, like, desc, asc, sql, inArray, type CRUDResult, type CRUDListResult } from "./crud";
 import { product, productImage, productSize, productTag, category, tag, size, type Product, type NewProduct, type ProductImage, type ProductSize } from "./schema";
 import { db } from "./drizzle";
 
@@ -13,10 +13,12 @@ interface ProductWithRelations extends Product {
 
 interface ProductFilters {
   categoryId?: string;
+  categoryIds?: string[];
   categorySlug?: string;
   minPrice?: number;
   maxPrice?: number;
   isActive?: boolean;
+  isPublished?: boolean;
   isFeatured?: boolean;
   search?: string;
   tags?: string[];
@@ -89,11 +91,17 @@ class ProductCRUDClass extends BaseCRUD<typeof product, Product, NewProduct> {
       if (filters?.isActive !== undefined) {
         conditions.push(eq(product.isActive, filters.isActive));
       }
+      if (filters?.isPublished !== undefined) {
+        conditions.push(eq(product.isPublished, filters.isPublished));
+      }
       if (filters?.isFeatured !== undefined) {
         conditions.push(eq(product.isFeatured, filters.isFeatured));
       }
       if (filters?.categoryId) {
         conditions.push(eq(product.categoryId, filters.categoryId));
+      }
+      if (filters?.categoryIds && filters.categoryIds.length > 0) {
+        conditions.push(inArray(product.categoryId, filters.categoryIds));
       }
       if (filters?.search) {
         conditions.push(like(product.name, `%${filters.search}%`));
@@ -116,35 +124,28 @@ class ProductCRUDClass extends BaseCRUD<typeof product, Product, NewProduct> {
       const [countResult] = await countQuery;
       const total = Number(countResult?.count || 0);
 
-      // Get products
-      let query = db.select().from(product);
-      if (whereClause) query.where(whereClause);
-
-      // Apply sorting
-      if (sort) {
-        const sortFn = sort.direction === 'asc' ? asc : desc;
-        query.orderBy(sortFn(product[sort.field]));
-      } else {
-        query.orderBy(desc(product.createdAt));
-      }
-
-      const results = await query.limit(limit).offset(offset);
-
-      // Get images for all products
-      const productIds = results.map(p => p.id);
-      const allImages = productIds.length > 0
-        ? await db.select().from(productImage).where(sql`${productImage.productId} IN ${productIds}`)
-        : [];
-
-      // Map images to products
-      const productsWithImages = results.map(p => ({
-        ...p,
-        images: allImages.filter(img => img.productId === p.id),
-      }));
+      // Get products using relational query
+      const results = await db.query.product.findMany({
+        where: whereClause,
+        with: {
+          category: true,
+          images: {
+            orderBy: (images, { asc }) => [asc(images.sortOrder)]
+          }
+        },
+        orderBy: (product, { asc, desc }) => {
+          if (sort) {
+            return [sort.direction === 'asc' ? asc(product[sort.field]) : desc(product[sort.field])];
+          }
+          return [desc(product.createdAt)];
+        },
+        limit,
+        offset,
+      });
 
       return {
         success: true,
-        data: productsWithImages,
+        data: results as ProductWithRelations[],
         meta: {
           total,
           page,

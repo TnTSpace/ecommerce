@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*,
+*::before,
+*::after {
+  font-family:
+    Figtree,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Open Sans",
+    "Helvetica Neue",
+    sans-serif;
+}
+ 
+@layer base {
+  
+	.card {
+		background-color: white;
+		border-radius: 0.75rem;
+		box-shadow:
+			0 10px 15px -3px rgba(0, 0, 0, 0.1),
+			0 4px 6px -2px rgba(0, 0, 0, 0.05);
+		padding: 1.5rem;
+    height:100%;
+		transition:
+			transform 0.3s ease,
+			box-shadow 0.3s ease;
+      @apply bg-white dark:bg-secondary
+	}
+  
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+  :root {
+    --background: 30 0% 100%;
+    --foreground: 30 0% 10%;
+    --card: 30 0% 100%;
+    --card-foreground: 30 0% 15%;
+    --popover: 30 0% 100%;
+    --popover-foreground: 30 95% 10%;
+    --primary: 30 92% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 10% 90%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: -8 10% 95%;
+    --muted-foreground: 30 0% 40%;
+    --accent: -8 10% 90%;
+    --accent-foreground: 30 0% 15%;
+    --destructive: 0 50% 50%;
+    --destructive-foreground: 30 0% 100%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --background: 30 10% 10%;
+    --foreground: 30 0% 100%;
+    --card: 30 0% 10%;
+    --card-foreground: 30 0% 100%;
+    --popover: 30 10% 5%;
+    --popover-foreground: 30 0% 100%;
+    --primary: 30 92% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: -8 10% 25%;
+    --muted-foreground: 30 0% 65%;
+    --accent: -8 10% 25%;
+    --accent-foreground: 30 0% 95%;
+    --destructive: 0 50% 50%;
+    --destructive-foreground: 30 0% 100%;
+    --border: 30 0% 20%;
+    --input: 30 0% 20%;
+    --ring: 212.7 26.8% 83.9%;
+    --radius: 0.75rem;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  table tr > th:first-child, table tr > td:first-child {
+    position: sticky !important;
+    left: 0 !important;
+  }
+
+  table tr > th:nth-child(2), table tr > td:nth-child(2) {
+    position: sticky !important;
+    left: 56px !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

@@ -7,11 +7,17 @@ const BUCKET_NAME = env.MINIO_BUCKET || 'uploads';
 export const GET: RequestHandler = async () => {
 	try {
 		const objects = await listObjects(BUCKET_NAME);
-		const files = objects.map((obj: any) => ({
-			id: obj.name, url: getDirectObjectUrl(BUCKET_NAME, obj.name),
-			filename: obj.name.split('-').slice(1).join('-') || obj.name,
-			size: obj.size, etag: obj.etag, uploadedAt: obj.lastModified
-		}));
+		const files = objects.map((obj: any) => {
+			const directUrl = getDirectObjectUrl(BUCKET_NAME, obj.name);
+			return {
+				id: obj.name,
+				url: directUrl,
+				fileId: obj.name, // Fallback
+				remoteId: obj.name,
+				size: obj.size,
+				createdAt: obj.lastModified
+			};
+		});
 		return json({ success: true, files });
 	} catch (error) { return json({ error: 'Failed to list files' }, { status: 500 }); }
 };

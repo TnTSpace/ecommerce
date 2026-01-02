@@ -1,0 +1,11 @@
+import MaAdidas from "./temu/ma-adidas.json"
+import MaAsus from './temu/ma-asus.json'
+import MaItel from './temu/ma-itel.json'
+import MaOppo from './temu/ma-oppo.json'
+import MaPanasonic from './temu/ma-panasonic.json'
+import MaSamsung from './temu/ma-samsung.json'
+import MaSkechers from './temu/ma-skechers.json'
+import MaXiaomi from './temu/ma-xiaomi.json'
+import MaZealot from './temu/ma-zealot.json'
+
+export const MaList = [...MaAdidas, ...MaAsus, ...MaItel, ...MaOppo, ...MaPanasonic, ...MaSamsung, ...MaSkechers, ...MaXiaomi, ...MaZealot]

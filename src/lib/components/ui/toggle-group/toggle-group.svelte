@@ -30,12 +30,19 @@
 		spacing = 0,
 		variant = "default",
 		...restProps
-	}: ToggleGroupPrimitive.RootProps & ToggleVariants & { spacing?: number } = $props();
+	}: ToggleGroupPrimitive.RootProps &
+		ToggleVariants & { spacing?: number } = $props();
 
 	setToggleGroupCtx({
-		variant,
-		size,
-		spacing,
+		get variant() {
+			return variant;
+		},
+		get size() {
+			return size;
+		},
+		get spacing() {
+			return spacing;
+		},
 	});
 </script>
 
@@ -53,7 +60,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 	style={`--gap: ${spacing}`}
 	class={cn(
 		"group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-md data-[spacing=default]:data-[variant=outline]:shadow-xs",
-		className
+		className,
 	)}
 	{...restProps}
 />

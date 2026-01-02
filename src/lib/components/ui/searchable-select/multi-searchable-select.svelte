@@ -42,7 +42,13 @@
   let hasSearched = $state(false);
   let searchResults = $state<Item[]>([]);
   let searchQuery = $state("");
-  let selectedItems = $state<Item[]>(initialItems);
+  let selectedItems = $state<Item[]>([]);
+
+  $effect(() => {
+    if (initialItems && initialItems.length > 0 && selectedItems.length === 0) {
+      selectedItems = initialItems;
+    }
+  });
 
   // Sync selectedIds with selectedItems
   $effect(() => {

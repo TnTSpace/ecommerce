@@ -61,7 +61,7 @@ export const category = pgTable("category", {
   name: text("name").notNull().unique(),
   description: text("description"),
   parentId: text("parent_id").references((): any => category.id, { onDelete: "set null" }),
-  image: text("image"),
+  image: text("image").references(() => file.id, { onDelete: "set null" }),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -82,6 +82,7 @@ export const product = pgTable("product", {
   stockQuantity: integer("stock_quantity").notNull().default(0),
   lowStockThreshold: integer("low_stock_threshold").notNull().default(10),
   isActive: boolean("is_active").notNull().default(true),
+  isPublished: boolean("is_published").notNull().default(true),
   isFeatured: boolean("is_featured").notNull().default(false),
   weight: decimal("weight", { precision: 10, scale: 2 }),
   dimensions: json("dimensions").$type<{ length?: number; width?: number; height?: number }>(),
@@ -97,6 +98,7 @@ export const productImage = pgTable("product_image", {
   id: text("id").primaryKey(),
   productId: text("product_id").notNull().references(() => product.id, { onDelete: "cascade" }),
   url: text("url").notNull(),
+  remoteId: text("remote_id"),
   altText: text("alt_text"),
   sortOrder: integer("sort_order").notNull().default(0),
   isPrimary: boolean("is_primary").notNull().default(false),
@@ -251,16 +253,16 @@ export const review = pgTable("review", {
 
 export const file = pgTable("file", {
   id: text("id").primaryKey(),
-  filename: text("filename").notNull(),
-  originalName: text("original_name").notNull(),
-  mimeType: text("mime_type").notNull(),
+  fileId: text("file_id").notNull(),
+  filename: text("filename"),
+  mimeType: text("mime_type"),
+  category: text("category").default("general"),
   size: integer("size").notNull(),
   url: text("url").notNull(),
-  thumbnailUrl: text("thumbnail_url"),
+  remoteId: text("remote_id"),
   uploadedBy: text("uploaded_by").references(() => user.id, { onDelete: "set null" }),
-  category: text("category"),
-  metadata: json("metadata").$type<Record<string, any>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const settings = pgTable("settings", {
@@ -288,7 +290,6 @@ export const userRelations = relations(user, ({ many }) => ({
   carts: many(cart),
   orders: many(order),
   reviews: many(review),
-  files: many(file),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -303,6 +304,7 @@ export const categoryRelations = relations(category, ({ one, many }) => ({
   parent: one(category, { fields: [category.parentId], references: [category.id], relationName: "categoryHierarchy" }),
   children: many(category, { relationName: "categoryHierarchy" }),
   products: many(product),
+  imageFile: one(file, { fields: [category.image], references: [file.id] }),
 }));
 
 export const productRelations = relations(product, ({ one, many }) => ({
@@ -368,10 +370,6 @@ export const reviewRelations = relations(review, ({ one }) => ({
   product: one(product, { fields: [review.productId], references: [product.id] }),
   user: one(user, { fields: [review.userId], references: [user.id] }),
   order: one(order, { fields: [review.orderId], references: [order.id] }),
-}));
-
-export const fileRelations = relations(file, ({ one }) => ({
-  uploader: one(user, { fields: [file.uploadedBy], references: [user.id] }),
 }));
 
 // ==================== SCHEMA EXPORT ====================

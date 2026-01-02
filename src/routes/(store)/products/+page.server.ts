@@ -5,7 +5,10 @@ import { CategoryCRUD } from '$lib/db/category';
 export const load = (async ({ url }) => {
   const page = parseInt(url.searchParams.get('page') || '1');
   const search = url.searchParams.get('search') || undefined;
-  const categorySlug = url.searchParams.get('category') || undefined;
+  const categoryId = url.searchParams.get('category') || undefined;
+  const categoryIds = url.searchParams.get('categories')?.split(',').filter(Boolean) || undefined;
+  const minPrice = url.searchParams.get('minPrice') ? parseInt(url.searchParams.get('minPrice')!) : undefined;
+  const maxPrice = url.searchParams.get('maxPrice') ? parseInt(url.searchParams.get('maxPrice')!) : undefined;
   const featured = url.searchParams.get('featured') === 'true';
   const sortParam = url.searchParams.get('sort') || 'newest';
 
@@ -13,8 +16,8 @@ export const load = (async ({ url }) => {
   const sortMapping: Record<string, { field: any; direction: 'asc' | 'desc' }> = {
     newest: { field: 'createdAt', direction: 'desc' },
     oldest: { field: 'createdAt', direction: 'asc' },
-    'price-low': { field: 'basePrice', direction: 'asc' },
-    'price-high': { field: 'basePrice', direction: 'desc' },
+    'price-asc': { field: 'basePrice', direction: 'asc' },
+    'price-desc': { field: 'basePrice', direction: 'desc' },
     name: { field: 'name', direction: 'asc' },
   };
 
@@ -22,7 +25,15 @@ export const load = (async ({ url }) => {
 
   const [productsResult, categoriesResult] = await Promise.all([
     ProductCRUD.getFiltered(
-      { search, isActive: true, isFeatured: featured || undefined },
+      {
+        search,
+        isActive: true,
+        isFeatured: featured || undefined,
+        categoryId,
+        categoryIds,
+        minPrice,
+        maxPrice
+      },
       sort,
       page,
       20
@@ -35,5 +46,12 @@ export const load = (async ({ url }) => {
     meta: productsResult.meta,
     categories: categoriesResult.data || [],
     searchQuery: search,
+    filters: {
+      categoryId,
+      categoryIds: categoryIds || [],
+      minPrice,
+      maxPrice,
+      sort: sortParam
+    }
   };
 }) satisfies PageServerLoad;

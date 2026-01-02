@@ -41,7 +41,10 @@ export const actions: Actions = {
     const isFeatured = formData.get('isFeatured') === 'on' || formData.get('isFeatured') === 'true';
     const metaTitle = formData.get('metaTitle') as string;
     const metaDescription = formData.get('metaDescription') as string;
+    const isPublished = formData.get('isPublished') === 'true';
     const images = formData.getAll('images') as File[];
+
+    console.log(`[Product Create] Recevied name: ${name}, categoryId: ${categoryId}`);
 
     // Complex fields
     const tagIds = formData.getAll('tagIds') as string[];
@@ -75,6 +78,7 @@ export const actions: Actions = {
         lowStockThreshold,
         categoryId: categoryId || null,
         isActive,
+        isPublished,
         isFeatured,
         metaTitle: metaTitle || null,
         metaDescription: metaDescription || null,
@@ -127,7 +131,7 @@ export const actions: Actions = {
         await db.insert(productImage).values({
           id: crypto.randomUUID(),
           productId,
-          url: uploadResult.url,
+          url: uploadResult.directUrl,
           altText: name,
           sortOrder: i,
           isPrimary: i === 0,
@@ -136,9 +140,28 @@ export const actions: Actions = {
 
       throw redirect(303, '/admin/products');
     } catch (error) {
+      if (typeof error === 'object' && error !== null && 'status' in error && 'location' in error) {
+        throw error;
+      }
       if (error instanceof Response) throw error;
+
       console.error('Create product error:', error);
-      return fail(500, { error: 'Failed to create product' });
+
+      let message = 'Failed to create product';
+      if (error && typeof error === 'object') {
+        const pgError = error as any;
+        if (pgError.detail) {
+          message = pgError.detail;
+        } else if (pgError.message) {
+          if (pgError.message.includes('unique constraint') && pgError.message.includes('sku')) {
+            message = 'A product with this SKU already exists. Product SKUs must be unique.';
+          } else {
+            message = pgError.message;
+          }
+        }
+      }
+
+      return fail(500, { error: message });
     }
   },
 };

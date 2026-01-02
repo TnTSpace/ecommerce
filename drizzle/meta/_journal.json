@@ -29,6 +29,34 @@
       "when": 1767175981514,
       "tag": "0003_loving_puppet_master",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1767180694332,
+      "tag": "0004_redundant_omega_sentinel",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1767310046882,
+      "tag": "0005_yielding_inhumans",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1767342827464,
+      "tag": "0006_true_onslaught",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767344687519,
+      "tag": "0007_flawless_callisto",
+      "breakpoints": true
     }
   ]
 }

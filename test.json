@@ -1,0 +1,393 @@
+[
+  {
+    "zones": [
+      {
+        "zone": "Zone 1",
+        "cities": "Lagos",
+        "id": 1,
+        "createdAt": "2025-12-31T14:43:12.292Z",
+        "updatedAt": "2025-12-31T15:01:08.182Z"
+      },
+      {
+        "zone": "Zone 2",
+        "cities": "Agbara, Mowe Ibafo, Ajah, Akute, Awoyaya, Badagry, Epe, Ibeju-Lekki, Ijanikin, Ikorodu, Ojo, Ojokoro, Okokomaiko, Sagamu",
+        "id": 2,
+        "createdAt": "2025-12-31T14:43:12.325Z",
+        "updatedAt": "2025-12-31T15:01:08.201Z"
+      },
+      {
+        "zone": "Zone 3",
+        "cities": "Abeokuta, Abuja, Port Harcourt, Akure, Awka, Ibadan, Asaba, Benin, Eleme, Gwagwalada, Idu, Nnewi, Obantoko, Onitsha, Osogbo, Owerri, Oyigbo",
+        "id": 3,
+        "createdAt": "2025-12-31T14:43:12.356Z",
+        "updatedAt": "2025-12-31T15:01:08.234Z"
+      },
+      {
+        "zone": "Zone 4",
+        "cities": "Ado Ekiti, Agbor, Akoko, Ede, Ikire, Ikirun, Ile Ife, Ilesha, Iwo, Masaka, Nsukka, Offa, Ogbomosho, Ondo Town, Ore, Owo, Oyo Town, Umuahia, Ilorin",
+        "id": 4,
+        "createdAt": "2025-12-31T14:43:12.384Z",
+        "updatedAt": "2025-12-31T15:01:08.261Z"
+      },
+      {
+        "zone": "Zone 5",
+        "cities": "Aba, Ago Iwoye, Calabar, Enugu, Ijebu Igbo, Ijebu Ode, Ikot Ekpene, Ilaro, Ilishan Remo, Iperu, Jos, Kaduna , Maiduguri, Minna, Sango Otta, Redeemed Camp, Uyo, Warri, Yenagoa",
+        "id": 5,
+        "createdAt": "2025-12-31T14:43:12.415Z",
+        "updatedAt": "2025-12-31T15:01:08.282Z"
+      },
+      {
+        "zone": "Zone 6",
+        "cities": "Abakaliki, Bauchi, Kano, Eket, Gombe, Lokoja, Okene, Suleja, Udu, Yola, Zaria",
+        "id": 6,
+        "createdAt": "2025-12-31T14:43:12.454Z",
+        "updatedAt": "2025-12-31T15:01:08.308Z"
+      },
+      {
+        "zone": "Zone 7",
+        "cities": "Abraka, Agbarho, Bonny Island, Egor, Ekpoma, Etsako, Fupre, Keffi, Lafia, Markurdi, Obiaruku, Oghara, Ozoro, Sapele, Ughelli, Uromi",
+        "id": 7,
+        "createdAt": "2025-12-31T14:43:12.482Z",
+        "updatedAt": "2025-12-31T15:01:08.337Z"
+      }
+    ],
+    "rates": [
+      {
+        "anchor": "zone1zone1",
+        "departure": "Zone 1",
+        "arrival": "Zone 1",
+        "small": "₦1,400",
+        "medium": "₦3,600",
+        "large": "₦5,800",
+        "deliveryTime": "1 - 2",
+        "id": 1,
+        "createdAt": "2025-12-31T14:07:12.499Z",
+        "updatedAt": "2025-12-31T15:01:19.136Z"
+      },
+      {
+        "anchor": "zone1zone2",
+        "departure": "Zone 1",
+        "arrival": "Zone 2",
+        "small": "₦1,400",
+        "medium": "₦3,800",
+        "large": "₦6,000",
+        "deliveryTime": "2 - 4",
+        "id": 2,
+        "createdAt": "2025-12-31T14:07:12.544Z",
+        "updatedAt": "2025-12-31T15:01:19.161Z"
+      },
+      {
+        "anchor": "zone1zone3",
+        "departure": "Zone 1",
+        "arrival": "Zone 3",
+        "small": "₦1,700",
+        "medium": "₦5,000",
+        "large": "₦15,000",
+        "deliveryTime": "3 - 7",
+        "id": 3,
+        "createdAt": "2025-12-31T14:07:12.571Z",
+        "updatedAt": "2025-12-31T15:01:19.184Z"
+      },
+      {
+        "anchor": "zone1zone4",
+        "departure": "Zone 1",
+        "arrival": "Zone 4",
+        "small": "₦1,400",
+        "medium": "₦3,500",
+        "large": "₦15,000",
+        "deliveryTime": "4 - 9",
+        "id": 4,
+        "createdAt": "2025-12-31T14:07:12.593Z",
+        "updatedAt": "2025-12-31T15:01:19.205Z"
+      },
+      {
+        "anchor": "zone1zone5",
+        "departure": "Zone 1",
+        "arrival": "Zone 5",
+        "small": "₦1,600",
+        "medium": "₦7,000",
+        "large": "₦22,000",
+        "deliveryTime": "3 - 9",
+        "id": 5,
+        "createdAt": "2025-12-31T14:07:12.618Z",
+        "updatedAt": "2025-12-31T15:01:19.243Z"
+      },
+      {
+        "anchor": "zone1zone6",
+        "departure": "Zone 1",
+        "arrival": "Zone 6",
+        "small": "₦1,900",
+        "medium": "₦7,100",
+        "large": "₦26,000",
+        "deliveryTime": "8 - 9 ",
+        "id": 6,
+        "createdAt": "2025-12-31T14:07:12.658Z",
+        "updatedAt": "2025-12-31T15:01:19.269Z"
+      },
+      {
+        "anchor": "zone1zone7",
+        "departure": "Zone 1",
+        "arrival": "Zone 7",
+        "small": "₦1,800",
+        "medium": "₦7,800",
+        "large": "₦30,000",
+        "deliveryTime": "4 - 9",
+        "id": 7,
+        "createdAt": "2025-12-31T14:07:12.686Z",
+        "updatedAt": "2025-12-31T15:01:19.287Z"
+      },
+      {
+        "anchor": "zone2zone2",
+        "departure": "Zone 2",
+        "arrival": "Zone 2",
+        "small": "₦2,200",
+        "medium": "₦3,800",
+        "large": "₦6,000",
+        "deliveryTime": "5 - 7",
+        "id": 8,
+        "createdAt": "2025-12-31T14:07:12.718Z",
+        "updatedAt": "2025-12-31T15:01:19.312Z"
+      },
+      {
+        "anchor": "zone2zone3",
+        "departure": "Zone 2",
+        "arrival": "Zone 3",
+        "small": "₦2,600",
+        "medium": "₦5,700",
+        "large": "₦18,000",
+        "deliveryTime": "7 - 10",
+        "id": 9,
+        "createdAt": "2025-12-31T14:07:12.750Z",
+        "updatedAt": "2025-12-31T15:01:19.346Z"
+      },
+      {
+        "anchor": "zone2zone4",
+        "departure": "Zone 2",
+        "arrival": "Zone 4",
+        "small": "₦2,100",
+        "medium": "₦3,600",
+        "large": "₦18,000",
+        "deliveryTime": "8 - 13",
+        "id": 10,
+        "createdAt": "2025-12-31T14:07:12.779Z",
+        "updatedAt": "2025-12-31T15:01:19.378Z"
+      },
+      {
+        "anchor": "zone2zone5",
+        "departure": "Zone 2",
+        "arrival": "Zone 5",
+        "small": "₦2,500",
+        "medium": "₦7,000",
+        "large": "₦25,000",
+        "deliveryTime": "7 - 13",
+        "id": 11,
+        "createdAt": "2025-12-31T14:07:12.803Z",
+        "updatedAt": "2025-12-31T15:01:19.439Z"
+      },
+      {
+        "anchor": "zone2zone6",
+        "departure": "Zone 2",
+        "arrival": "Zone 6",
+        "small": "₦2,800",
+        "medium": "₦7,500",
+        "large": "₦26,000",
+        "deliveryTime": "12 - 13",
+        "id": 12,
+        "createdAt": "2025-12-31T14:07:12.842Z",
+        "updatedAt": "2025-12-31T15:01:19.501Z"
+      },
+      {
+        "anchor": "zone2zone7",
+        "departure": "Zone 2",
+        "arrival": "Zone 7",
+        "small": "₦2,900",
+        "medium": "₦8,500",
+        "large": "₦30,000",
+        "deliveryTime": "8 - 13",
+        "id": 13,
+        "createdAt": "2025-12-31T14:07:12.872Z",
+        "updatedAt": "2025-12-31T15:01:19.584Z"
+      },
+      {
+        "anchor": "zone4zone4",
+        "departure": "Zone 4",
+        "arrival": "Zone 4",
+        "small": "₦2,100",
+        "medium": "₦4,000",
+        "large": "₦16,000",
+        "deliveryTime": "10 - 12",
+        "id": 14,
+        "createdAt": "2025-12-31T14:07:12.896Z",
+        "updatedAt": "2025-12-31T15:01:19.774Z"
+      },
+      {
+        "anchor": "zone4zone5",
+        "departure": "Zone 4",
+        "arrival": "Zone 5",
+        "small": "₦2,500",
+        "medium": "₦7,500",
+        "large": "₦23,000",
+        "deliveryTime": "8 - 12",
+        "id": 15,
+        "createdAt": "2025-12-31T14:07:12.914Z",
+        "updatedAt": "2025-12-31T15:01:19.800Z"
+      },
+      {
+        "anchor": "zone4zone6",
+        "departure": "Zone 4",
+        "arrival": "Zone 6",
+        "small": "₦2,900",
+        "medium": "₦7,500",
+        "large": "₦30,000",
+        "deliveryTime": "16 - 17 ",
+        "id": 16,
+        "createdAt": "2025-12-31T14:07:12.944Z",
+        "updatedAt": "2025-12-31T15:01:19.827Z"
+      },
+      {
+        "anchor": "zone4zone7",
+        "departure": "Zone 4",
+        "arrival": "Zone 7",
+        "small": "₦2,800",
+        "medium": "₦8,000",
+        "large": "₦30,000",
+        "deliveryTime": "12 - 17 ",
+        "id": 17,
+        "createdAt": "2025-12-31T14:07:12.974Z",
+        "updatedAt": "2025-12-31T15:01:19.852Z"
+      },
+      {
+        "anchor": "zone5zone5",
+        "departure": "Zone 5",
+        "arrival": "Zone 5",
+        "small": "₦2,900",
+        "medium": "₦10,000",
+        "large": "₦26,000",
+        "deliveryTime": "12 - 14",
+        "id": 18,
+        "createdAt": "2025-12-31T14:07:13.001Z",
+        "updatedAt": "2025-12-31T15:01:19.875Z"
+      },
+      {
+        "anchor": "zone5zone6",
+        "departure": "Zone 5",
+        "arrival": "Zone 6",
+        "small": "₦3,500",
+        "medium": "₦11,000",
+        "large": "₦30,000",
+        "deliveryTime": "8 - 17 ",
+        "id": 19,
+        "createdAt": "2025-12-31T14:07:13.051Z",
+        "updatedAt": "2025-12-31T15:01:19.892Z"
+      },
+      {
+        "anchor": "zone5zone7",
+        "departure": "Zone 5",
+        "arrival": "Zone 7",
+        "small": "₦3,500",
+        "medium": "₦11,000",
+        "large": "₦30,000",
+        "deliveryTime": "16 - 17 ",
+        "id": 20,
+        "createdAt": "2025-12-31T14:07:13.072Z",
+        "updatedAt": "2025-12-31T15:01:19.918Z"
+      },
+      {
+        "anchor": "zone6zone6",
+        "departure": "Zone 6",
+        "arrival": "Zone 6",
+        "small": "₦3,500",
+        "medium": "₦11,000",
+        "large": "₦30,000",
+        "deliveryTime": "14 - 16",
+        "id": 21,
+        "createdAt": "2025-12-31T14:07:13.096Z",
+        "updatedAt": "2025-12-31T15:01:19.955Z"
+      },
+      {
+        "anchor": "zone6zone7",
+        "departure": "Zone 6",
+        "arrival": "Zone 7",
+        "small": "₦3,500",
+        "medium": "₦11,000",
+        "large": "₦35,000",
+        "deliveryTime": "12 - 17 ",
+        "id": 22,
+        "createdAt": "2025-12-31T14:07:13.132Z",
+        "updatedAt": "2025-12-31T15:01:19.980Z"
+      },
+      {
+        "anchor": "zone7zone7",
+        "departure": "Zone 7",
+        "arrival": "Zone 7",
+        "small": "₦3,500",
+        "medium": "₦12,000",
+        "large": "₦35,000",
+        "deliveryTime": "16 - 18",
+        "id": 23,
+        "createdAt": "2025-12-31T14:07:13.161Z",
+        "updatedAt": "2025-12-31T15:01:20.010Z"
+      },
+      {
+        "anchor": "zone3zone3",
+        "departure": "Zone 3",
+        "arrival": "Zone 3",
+        "small": "Zone 3 ",
+        "medium": "₦7,000",
+        "large": "₦20,000",
+        "deliveryTime": "7 - 10",
+        "id": 24,
+        "createdAt": "2025-12-31T14:43:23.077Z",
+        "updatedAt": "2025-12-31T15:01:19.617Z"
+      },
+      {
+        "anchor": "zone3zone4",
+        "departure": "Zone 3",
+        "arrival": "Zone 4",
+        "small": "₦2,500",
+        "medium": "₦5,500",
+        "large": "₦22,000",
+        "deliveryTime": "12 - 17 ",
+        "id": 25,
+        "createdAt": "2025-12-31T14:43:23.097Z",
+        "updatedAt": "2025-12-31T15:01:19.647Z"
+      },
+      {
+        "anchor": "zone3zone5",
+        "departure": "Zone 3",
+        "arrival": "Zone 5",
+        "small": "Zone 3 ",
+        "medium": "₦9,000",
+        "large": "₦25,000",
+        "deliveryTime": "8 - 14",
+        "id": 26,
+        "createdAt": "2025-12-31T14:43:23.124Z",
+        "updatedAt": "2025-12-31T15:01:19.681Z"
+      },
+      {
+        "anchor": "zone3zone6",
+        "departure": "Zone 3",
+        "arrival": "Zone 6",
+        "small": "₦3,500",
+        "medium": "₦9,000",
+        "large": "₦30,000",
+        "deliveryTime": "16 - 17 ",
+        "id": 27,
+        "createdAt": "2025-12-31T14:43:23.157Z",
+        "updatedAt": "2025-12-31T15:01:19.717Z"
+      },
+      {
+        "anchor": "zone3zone7",
+        "departure": "Zone 3",
+        "arrival": "Zone 7",
+        "small": "₦3,300",
+        "medium": "₦10,000",
+        "large": "₦30,000",
+        "deliveryTime": "12 - 17 ",
+        "id": 28,
+        "createdAt": "2025-12-31T14:43:23.177Z",
+        "updatedAt": "2025-12-31T15:01:19.748Z"
+      }
+    ]
+  }
+]

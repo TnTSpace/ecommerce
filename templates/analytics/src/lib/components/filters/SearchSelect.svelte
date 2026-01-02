@@ -1,0 +1,81 @@
+<script lang="ts">
+	import Check from '@lucide/svelte/icons/check';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down'; 
+	import * as Command from '$lib/components/ui/command';
+	import * as Popover from '$lib/components/ui/popover';
+	import { cn } from '$lib/utils';
+	import type { iOption } from '$lib/interface'; 
+	import { Button } from '../ui/button';
+
+	interface Props {
+		options: iOption[];
+		value: string;
+    name: string
+	}
+
+	let { options, value = $bindable(''), name }: Props = $props();
+
+	let open = $state(false);
+
+	// const organizations = [
+	// 	{
+	// 		label: 'Origin UI - Svelte',
+	// 		value: 'originui'
+	// 	},
+	// 	{
+	// 		label: 'Bits UI',
+	// 		value: 'bitsui'
+	// 	}
+	// ] as const;
+
+	function handleSelect(currentValue: string) {
+		value = currentValue === value ? '' : currentValue;
+		open = false;
+	}
+</script>
+
+<div class="space-y-2">
+	<Popover.Root bind:open>
+		<Popover.Trigger>
+			{#snippet child({ props })}
+				<Button
+					variant="outline"
+					role="combobox"
+					aria-expanded={open}
+					class="w-full justify-between bg-background px-3 font-normal outline-offset-0 hover:bg-background focus-visible:border-ring focus-visible:outline-[3px] focus-visible:outline-ring/20"
+					{...props}
+				>
+					<span class={cn('truncate', !value && 'text-muted-foreground')}>
+						{#if value}
+							{options.find((option) => option.value === value)?.label}
+						{:else}
+							Select {name}
+						{/if}
+					</span>
+					<ChevronDown size={16} class="shrink-0 text-muted-foreground/80" aria-hidden="true" />
+				</Button>
+			{/snippet}
+		</Popover.Trigger>
+		<Popover.Content class="min-w-(--bits-popover-anchor-width) w-full p-0" align="start">
+			<Command.Root>
+				<Command.Input placeholder="Find {name}" />
+				<Command.List>
+					<Command.Empty>No {name} found.</Command.Empty>
+					<Command.Group>
+						{#each options as option (option.value)}
+							<Command.Item
+								value={option.value}
+								onSelect={() => handleSelect(option.value)}
+							>
+								{option.label}
+								<Check
+									class={cn('ml-auto', value === option.value ? 'opacity-100' : 'opacity-0')}
+								/>
+							</Command.Item>
+						{/each}
+					</Command.Group>
+				</Command.List>
+			</Command.Root>
+		</Popover.Content>
+	</Popover.Root>
+</div>

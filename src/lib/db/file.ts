@@ -23,13 +23,14 @@ class FileCRUDClass extends BaseCRUD<typeof file, File, NewFile> {
 
       const insertData: any = {
         id: crypto.randomUUID(),
-        originalName: fileData.name,
-        filename: uploadResult.id,
+        fileId: crypto.randomUUID(),
+        filename: uploadResult.filename,
+        mimeType: uploadResult.contentType,
+        category: category,
+        size: uploadResult.size,
         url: uploadResult.url,
-        mimeType: fileData.type,
-        size: fileData.size,
-        category,
-        uploadedBy: userId || null,
+        remoteId: uploadResult.id,
+        uploadedBy: userId,
       };
 
       return await this.create(insertData);
@@ -49,8 +50,8 @@ class FileCRUDClass extends BaseCRUD<typeof file, File, NewFile> {
         return { success: false, error: "File not found" };
       }
 
-      // Delete from Minio
-      await deleteFileById('uploads', fileRecord.data.filename);
+      // Delete from Minio using remoteId
+      await deleteFileById('uploads', fileRecord.data.remoteId!);
 
       // Delete from DB
       const dbResult = await this.delete(id);

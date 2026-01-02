@@ -1,0 +1,7 @@
+.cr-viewport {
+	position: relative;
+	overflow: hidden;
+	width: 100% !important;
+	height: auto !important;
+	aspect-ratio: 1600/900 !important;
+}

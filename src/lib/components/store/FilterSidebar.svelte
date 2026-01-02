@@ -1,0 +1,266 @@
+<script lang="ts">
+  import { Label } from "$lib/components/ui/label/index.js";
+  import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { Slider } from "$lib/components/ui/slider/index.js";
+  import {
+    RadioGroup,
+    RadioGroupItem,
+  } from "$lib/components/ui/radio-group/index.js";
+  import SelectComponent from "$lib/components/ui/select/select-component.svelte";
+  import { Input } from "$lib/components/ui/input/index.js";
+  import { Trash2, Star, Truck } from "@lucide/svelte";
+  import { cn } from "$lib/utils.js";
+
+  interface Props {
+    class?: string;
+    categories: any[];
+    tags?: any[];
+    brands?: any[];
+    selectedCategory?: string;
+    selectedTag?: string;
+    selectedBrand?: string;
+    priceRange: number[];
+    rating?: string;
+    expressDelivery?: boolean;
+    discountRange?: string;
+    onClear: () => void;
+  }
+
+  let {
+    class: className,
+    categories,
+    tags = [],
+    brands = [],
+    selectedCategory = $bindable(""),
+    selectedTag = $bindable(""),
+    selectedBrand = $bindable(""),
+    priceRange = $bindable(),
+    rating = $bindable("0-5"),
+    expressDelivery = $bindable(false),
+    discountRange = $bindable("0-100"),
+    onClear,
+  }: Props = $props();
+
+  const hasFilters = $derived(
+    selectedCategory !== "" ||
+      selectedTag !== "" ||
+      selectedBrand !== "" ||
+      priceRange[0] > 0 ||
+      priceRange[1] < 100000 ||
+      rating !== "0-5" ||
+      expressDelivery ||
+      discountRange !== "0-100",
+  );
+
+  const ratingOptions = [
+    { value: "0-5", label: "All products", stars: 0 },
+    { value: "4-5", label: "4 stars & up", stars: 4 },
+    { value: "3-5", label: "3 stars & up", stars: 3 },
+    { value: "2-5", label: "2 stars & up", stars: 2 },
+    { value: "1-5", label: "1 star & up", stars: 1 },
+    { value: "0-0", label: "No rating", stars: 0 },
+  ];
+
+  const discountOptions = [
+    { value: "0-100", label: "All products" },
+    { value: "50-100", label: "50% or more" },
+    { value: "40-100", label: "40% or more" },
+    { value: "30-100", label: "30% or more" },
+    { value: "20-100", label: "20% or more" },
+    { value: "10-100", label: "10% or more" },
+  ];
+
+  const categoryOptions = $derived(
+    categories.map((c) => ({ label: c.name, value: c.id })),
+  );
+  const tagOptions = $derived(
+    tags.map((t) => ({ label: t.name, value: t.id })),
+  );
+  const brandOptions = $derived(
+    brands.map((b) => ({ label: b.name, value: b.id })),
+  );
+</script>
+
+<aside class={cn("flex flex-col gap-8", className)}>
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <h2 class="text-xl font-bold text-foreground">Filters</h2>
+    {#if hasFilters}
+      <Button
+        variant="ghost"
+        onclick={onClear}
+        size="sm"
+        class="h-8 px-2 text-primary hover:text-primary/80 font-bold"
+      >
+        <Trash2 class="mr-2 h-4 w-4" />
+        Clear All
+      </Button>
+    {/if}
+  </div>
+
+  <!-- Categories -->
+  <div class="flex flex-col gap-3">
+    <Label
+      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+      >Categories</Label
+    >
+    <SelectComponent
+      name="category"
+      placeholder="Select Category"
+      options={categoryOptions}
+      bind:value={selectedCategory}
+      class="w-full bg-background font-medium"
+    />
+  </div>
+
+  <!-- Tag -->
+  <div class="flex flex-col gap-3">
+    <Label
+      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+      >Tag</Label
+    >
+    <SelectComponent
+      name="tag"
+      placeholder="Select Tag"
+      options={tagOptions}
+      bind:value={selectedTag}
+      class="w-full bg-background font-medium"
+    />
+  </div>
+
+  <!-- Brand -->
+  <div class="flex flex-col gap-3">
+    <Label
+      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+      >Brand</Label
+    >
+    <SelectComponent
+      name="brand"
+      placeholder="Select Brand"
+      options={brandOptions}
+      bind:value={selectedBrand}
+      class="w-full bg-background font-medium"
+    />
+  </div>
+
+  <!-- Price Range -->
+  <div class="flex flex-col gap-5">
+    <Label
+      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+      >Price Range</Label
+    >
+    <div class="px-2">
+      <Slider
+        type="multiple"
+        bind:value={priceRange}
+        max={100000}
+        step={500}
+        class="py-4"
+      />
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="relative flex-1">
+        <span
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground"
+          >₦</span
+        >
+        <Input
+          type="number"
+          bind:value={priceRange[0]}
+          class="pl-7 text-xs font-bold bg-muted/30 border-none"
+        />
+      </div>
+      <div class="h-px w-2 bg-border"></div>
+      <div class="relative flex-1">
+        <span
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground"
+          >₦</span
+        >
+        <Input
+          type="number"
+          bind:value={priceRange[1]}
+          class="pl-7 text-xs font-bold bg-muted/30 border-none"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Rating -->
+  <div class="flex flex-col gap-4">
+    <Label
+      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+      >Rating</Label
+    >
+    <RadioGroup bind:value={rating} class="gap-2">
+      {#each ratingOptions as opt}
+        <div class="flex items-center space-x-2">
+          <RadioGroupItem value={opt.value} id={"rating-" + opt.value} />
+          <Label
+            for={"rating-" + opt.value}
+            class="flex items-center gap-1.5 cursor-pointer text-sm font-medium hover:text-primary transition-colors"
+          >
+            {#if opt.stars > 0}
+              <div class="flex items-center">
+                {#each Array(5) as _, i}
+                  <Star
+                    class={cn(
+                      "h-3.5 w-3.5",
+                      i < opt.stars
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-muted",
+                    )}
+                  />
+                {/each}
+              </div>
+              & up
+            {:else}
+              {opt.label}
+            {/if}
+          </Label>
+        </div>
+      {/each}
+    </RadioGroup>
+  </div>
+
+  <!-- Express Delivery -->
+  <div class="flex flex-col gap-4">
+    <Label
+      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+      >Express Delivery</Label
+    >
+    <div
+      class="flex items-center space-x-3 rounded-lg border border-border p-3 bg-muted/10"
+    >
+      <Checkbox id="express-delivery" bind:checked={expressDelivery} />
+      <Label
+        for="express-delivery"
+        class="flex flex-1 items-center gap-2 cursor-pointer text-sm font-bold italic text-primary"
+      >
+        <Truck class="h-4 w-4" />
+        JUMIA EXPRESS
+      </Label>
+    </div>
+  </div>
+
+  <!-- Discount Percentage -->
+  <div class="flex flex-col gap-4">
+    <Label
+      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+      >Discount Percentage</Label
+    >
+    <RadioGroup bind:value={discountRange} class="gap-2">
+      {#each discountOptions as opt}
+        <div class="flex items-center space-x-2">
+          <RadioGroupItem value={opt.value} id={"discount-" + opt.value} />
+          <Label
+            for={"discount-" + opt.value}
+            class="text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+          >
+            {opt.label}
+          </Label>
+        </div>
+      {/each}
+    </RadioGroup>
+  </div>
+</aside>

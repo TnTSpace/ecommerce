@@ -38,7 +38,7 @@ export const HomepageContent = {
     subtitle: 'ecommerce',
     title: 'Build Something Amazing',
     description: 'A modern platform designed to help you achieve your goals with powerful tools and seamless experiences.',
-    primaryCta: { text: 'Get Started', href: '/auth/login?redirectTo=/dashboard' },
+    primaryCta: { text: 'Get Started', href: '/login?redirectTo=/dashboard' },
     secondaryCta: { text: 'Learn More', href: '#features' },
     loggedInCta: { text: 'Dashboard', href: '/dashboard' },
     backgroundImage: '/hero-bg.webp',

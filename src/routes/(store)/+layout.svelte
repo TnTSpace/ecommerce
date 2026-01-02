@@ -17,13 +17,20 @@
     Home,
     Package,
     Phone,
+    MoreHorizontal,
+    SlidersHorizontal,
+    Info,
+    Database,
   } from "@lucide/svelte";
-    import type { User } from "$lib/auth";
+  import type { User } from "$lib/auth";
+  import * as Drawer from "$lib/components/ui/drawer/index.js";
+  import { cart } from "$lib/store/cart.svelte";
 
   let { children, data }: LayoutProps = $props();
 
   let searchQuery = $state("");
   let mobileMenuOpen = $state(false);
+  let drawerOpen = $state(false);
 
   const navLinks = [
     { name: "Home", href: "/", icon: Home },
@@ -32,7 +39,7 @@
     { name: "Contact", href: "/contact", icon: Phone },
   ];
 
-  const user = page.data.user as User
+  const user = page.data.user as User;
 
   const isActive = (href: string) => {
     const pathname = page.url.pathname;
@@ -47,8 +54,8 @@
     }
   };
 
-  // Mock cart count - will be replaced with real data
-  const cartCount = 0;
+  // Use real cart store
+  const cartCount = $derived(cart.count);
 </script>
 
 <div class="min-h-screen bg-background">
@@ -123,18 +130,34 @@
 
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
-              <Button variant="ghost" size="icon">
-                <UserIcon class="h-5 w-5" />
+              <Button
+                variant="ghost"
+                size="icon"
+                class="rounded-full overflow-hidden"
+              >
+                {#if data?.user}
+                  <Avatar.Root class="size-7">
+                    <Avatar.Image src={user.image} alt={user.name} />
+                    <Avatar.Fallback class="text-[10px] font-bold uppercase"
+                      >{user.name.slice(0, 2)}</Avatar.Fallback
+                    >
+                  </Avatar.Root>
+                {:else}
+                  <UserIcon class="h-5 w-5" />
+                {/if}
               </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end">
               {#if data?.user}
-              
                 <DropdownMenu.Label class="p-0 font-normal">
-                  <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <div
+                    class="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
+                  >
                     <Avatar.Root class="size-8 rounded-lg">
                       <Avatar.Image src={user.image} alt={user.name} />
-                      <Avatar.Fallback class="rounded-lg uppercase">{user.name.slice(0, 2)}</Avatar.Fallback>
+                      <Avatar.Fallback class="rounded-lg uppercase"
+                        >{user.name.slice(0, 2)}</Avatar.Fallback
+                      >
                     </Avatar.Root>
                     <div class="grid flex-1 text-left text-sm leading-tight">
                       <span class="truncate font-medium">{user.name}</span>
@@ -143,79 +166,202 @@
                   </div>
                 </DropdownMenu.Label>
                 <DropdownMenu.Separator />
-                <DropdownMenu.Item onclick={() => location.href="/account"}>My Account</DropdownMenu.Item
+                <DropdownMenu.Item onclick={() => (location.href = "/profile")}>
+                  Profile
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onclick={() => (location.href = "/order/history")}
                 >
-                <DropdownMenu.Item onclick={() => location.href="/account/orders"}
-                  >Orders</DropdownMenu.Item
-                >
+                  My Orders
+                </DropdownMenu.Item>
+                {#if user.role === "admin"}
+                  <DropdownMenu.Separator />
+                  <DropdownMenu.Item onclick={() => (location.href = "/admin")}>
+                    Admin Dashboard
+                  </DropdownMenu.Item>
+                {/if}
                 <DropdownMenu.Separator />
-                <DropdownMenu.Item onclick={() => location.href="/auth/logout"}>Logout</DropdownMenu.Item
+                <DropdownMenu.Item
+                  onclick={() => (location.href = "/auth/logout")}
                 >
+                  Logout
+                </DropdownMenu.Item>
               {:else}
-                <DropdownMenu.Item onclick={() => location.href="/auth/login"}>Login</DropdownMenu.Item>
-                <DropdownMenu.Item onclick={() => location.href="/auth/register"}
+                <DropdownMenu.Item onclick={() => (location.href = "/login")}
+                  >Login</DropdownMenu.Item
+                >
+                <DropdownMenu.Item onclick={() => (location.href = "/register")}
                   >Register</DropdownMenu.Item
                 >
               {/if}
             </DropdownMenu.Content>
           </DropdownMenu.Root>
 
-          <!-- Mobile Menu -->
-          <Sheet.Root bind:open={mobileMenuOpen}>
-            <Sheet.Trigger>
-              <Button variant="ghost" size="icon" class="lg:hidden">
-                <Menu class="h-5 w-5" />
-              </Button>
-            </Sheet.Trigger>
-            <Sheet.Content side="left">
-              <Sheet.Header>
-                <Sheet.Title>Menu</Sheet.Title>
-              </Sheet.Header>
-              <div class="mt-6 space-y-4">
-                <!-- Mobile Search -->
-                <form onsubmit={handleSearch}>
-                  <div class="relative">
-                    <Search
-                      class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                    />
-                    <Input
-                      type="search"
-                      placeholder="Search..."
-                      class="pl-9"
-                      bind:value={searchQuery}
-                    />
-                  </div>
-                </form>
+          <!-- Mobile Menu - Hidden as per user request (switched to bottom nav) -->
+          <div class="hidden">
+            <Sheet.Root bind:open={mobileMenuOpen}>
+              <Sheet.Trigger>
+                <Button variant="ghost" size="icon" class="lg:hidden">
+                  <Menu class="h-5 w-5" />
+                </Button>
+              </Sheet.Trigger>
+              <Sheet.Content side="left">
+                <Sheet.Header>
+                  <Sheet.Title>Menu</Sheet.Title>
+                </Sheet.Header>
+                <div class="mt-6 space-y-4">
+                  <!-- Mobile Search -->
+                  <form onsubmit={handleSearch}>
+                    <div class="relative">
+                      <Search
+                        class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                      />
+                      <Input
+                        type="search"
+                        placeholder="Search..."
+                        class="pl-9"
+                        bind:value={searchQuery}
+                      />
+                    </div>
+                  </form>
 
-                <!-- Mobile Nav -->
-                <nav class="space-y-1">
-                  {#each navLinks as link}
-                    <a
-                      href={link.href}
-                      class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors {isActive(
-                        link.href,
-                      )
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
-                      onclick={() => (mobileMenuOpen = false)}
-                    >
-                      <link.icon class="h-4 w-4" />
-                      {link.name}
-                    </a>
-                  {/each}
-                </nav>
-              </div>
-            </Sheet.Content>
-          </Sheet.Root>
+                  <!-- Mobile Nav -->
+                  <nav class="space-y-1">
+                    {#each navLinks as link}
+                      <a
+                        href={link.href}
+                        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors {isActive(
+                          link.href,
+                        )
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
+                        onclick={() => (mobileMenuOpen = false)}
+                      >
+                        <link.icon class="h-4 w-4" />
+                        {link.name}
+                      </a>
+                    {/each}
+                  </nav>
+                </div>
+              </Sheet.Content>
+            </Sheet.Root>
+          </div>
         </div>
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="min-h-[calc(100vh-4rem)]">
+  <main class="min-h-[calc(100vh-4rem)] pb-16 lg:pb-0">
     {@render children()}
   </main>
+
+  <!-- Mobile Bottom Navigation -->
+  <div
+    class="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border bg-card pb-safe lg:hidden"
+  >
+    <!-- About -->
+    <a
+      href="/about"
+      class="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium transition-colors {isActive(
+        '/about',
+      )
+        ? 'text-primary'
+        : 'text-muted-foreground'}"
+    >
+      <Home class="h-5 w-5" />
+      <span>About</span>
+    </a>
+
+    <!-- Products -->
+    <a
+      href="/products"
+      class="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-bold transition-colors {isActive(
+        '/products',
+      )
+        ? 'text-primary'
+        : 'text-muted-foreground'}"
+    >
+      <Package class="h-5 w-5" />
+      <span>Products</span>
+    </a>
+
+    <!-- Filter -->
+    <button
+      type="button"
+      class="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium transition-colors text-muted-foreground hover:text-foreground"
+      onclick={() => {
+        if (isActive("/products")) {
+          window.dispatchEvent(new CustomEvent("open-filters"));
+        } else {
+          window.location.href = "/products";
+        }
+      }}
+    >
+      <SlidersHorizontal class="h-5 w-5" />
+      <span>Filter</span>
+    </button>
+
+    <!-- Menu -->
+    <button
+      type="button"
+      class="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium transition-colors text-muted-foreground hover:text-foreground"
+      onclick={() => (mobileMenuOpen = true)}
+    >
+      <Menu class="h-5 w-5" />
+      <span>Menu</span>
+    </button>
+
+    <Drawer.Root bind:open={drawerOpen}>
+      <Drawer.Trigger
+        class="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+      >
+        <MoreHorizontal class="h-5 w-5" />
+        <span>More</span>
+      </Drawer.Trigger>
+      <Drawer.Content>
+        <div class="mx-auto w-full max-w-sm px-6 py-8">
+          <Drawer.Header class="px-0 pt-0">
+            <Drawer.Title>Navigation</Drawer.Title>
+            <Drawer.Description>Quick access to other pages</Drawer.Description>
+          </Drawer.Header>
+          <div class="grid grid-cols-2 gap-4 py-6">
+            {#each navLinks as link}
+              <a
+                href={link.href}
+                onclick={() => (drawerOpen = false)}
+                class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
+              >
+                <link.icon class="h-6 w-6 text-primary" />
+                <span class="text-sm font-medium">{link.name}</span>
+              </a>
+            {/each}
+            <a
+              href="/account"
+              onclick={() => (drawerOpen = false)}
+              class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
+            >
+              <UserIcon class="h-6 w-6 text-primary" />
+              <span class="text-sm font-medium">Account</span>
+            </a>
+            <a
+              href="/cart"
+              onclick={() => (drawerOpen = false)}
+              class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
+            >
+              <ShoppingCart class="h-6 w-6 text-primary" />
+              <span class="text-sm font-medium">Cart</span>
+            </a>
+          </div>
+          <Drawer.Footer class="px-0 pb-0 pt-4">
+            <Button variant="outline" onclick={() => (drawerOpen = false)}
+              >Close</Button
+            >
+          </Drawer.Footer>
+        </div>
+      </Drawer.Content>
+    </Drawer.Root>
+  </div>
 
   <!-- Footer -->
   <footer class="border-t border-border bg-card">

@@ -17,3 +17,21 @@ export const load = (async ({ url }) => {
     meta: result.meta,
   };
 }) satisfies PageServerLoad;
+
+export const actions = {
+  delete: async ({ request }) => {
+    const formData = await request.formData();
+    const id = formData.get('id') as string;
+
+    if (!id) {
+      return { success: false, error: 'Product ID is required' };
+    }
+
+    const result = await ProductCRUD.delete(id);
+    if (!result.success) {
+      return { success: false, error: result.error || 'Failed to delete product' };
+    }
+
+    return { success: true };
+  }
+};

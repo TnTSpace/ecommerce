@@ -21,5 +21,5 @@ export const uploadFile = async (file: File): Promise<string> => {
   }
 
   const result = await response.json();
-  return result.url;
+  return result.directUrl || result.url;
 };

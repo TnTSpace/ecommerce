@@ -44,7 +44,7 @@
   let name = $state("");
   let description = $state("");
   let shortDescription = $state("");
-  let sku = $state("");
+  let sku = $state("SKU" + Date.now());
   let barcode = $state("");
   let basePrice = $state("");
   let compareAtPrice = $state("");
@@ -54,6 +54,7 @@
   let categoryId = $state("");
   let isActive = $state(true);
   let isFeatured = $state(false);
+  let isPublished = $state(false);
   let metaTitle = $state("");
   let metaDescription = $state("");
   let images: File[] = $state([]);
@@ -199,12 +200,11 @@
 
   // Fetch functions for SearchableSelect
   async function fetchCategories(query: string) {
-    // Map the image string to the object format expected by SearchableSelect
     return data.categories
       .filter((c: any) => c.name.toLowerCase().includes(query.toLowerCase()))
       .map((c: any) => ({
         ...c,
-        image: c.image ? { url: c.image } : null,
+        image: c.imageFile?.url ? { url: c.imageFile.url } : null,
       }));
   }
 
@@ -246,11 +246,19 @@
       return async ({ result }) => {
         isSubmitting = false;
         if (result.type === "redirect") {
+          toast.success(
+            isPublished
+              ? "Product published successfully"
+              : "Draft saved successfully",
+          );
           goto(result.location);
         } else if (result.type === "failure") {
-          // const message = result.data?.error || "Failed to create product";
-          console.log(result.data)
-          toast.error("Failed to create product");
+          const errorMsg = result.data?.error;
+          toast.error(
+            typeof errorMsg === "string"
+              ? errorMsg
+              : "Failed to create product",
+          );
         }
       };
     }}
@@ -259,6 +267,7 @@
     <!-- Hidden fields for JSON data -->
     <input type="hidden" name="features" value={JSON.stringify(features)} />
     <input type="hidden" name="sizes" value={JSON.stringify(productSizes)} />
+    <input type="hidden" name="isPublished" value={String(isPublished)} />
 
     <!-- Main Content -->
     <div class="space-y-6 lg:col-span-2">
@@ -438,14 +447,20 @@
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="space-y-2">
-              <Label for="sku">SKU *</Label>
+              <div class="flex items-center justify-between">
+                <Label for="sku">SKU *</Label>
+              </div>
               <Input
                 id="sku"
                 name="sku"
                 bind:value={sku}
                 required
-                placeholder="PROD-001"
+                readonly
+                class="bg-muted cursor-not-allowed opacity-80"
               />
+              <p class="text-[10px] text-muted-foreground">
+                Automated system ID
+              </p>
             </div>
             <div class="space-y-2">
               <Label for="stockQuantity">Stock Quantity *</Label>
@@ -685,21 +700,28 @@
             type="submit"
             class="w-full font-bold shadow-sm"
             disabled={isSubmitting}
+            onclick={() => (isPublished = true)}
           >
-            {#if isSubmitting}
+            {#if isSubmitting && isPublished}
               <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-              Creating Product...
+              Publishing...
             {:else}
               Publish Product
             {/if}
           </Button>
           <Button
-            type="button"
+            type="submit"
             variant="outline"
             class="w-full"
-            onclick={() => goto("/admin/products")}
+            disabled={isSubmitting}
+            onclick={() => (isPublished = false)}
           >
-            Save as Draft
+            {#if isSubmitting && !isPublished}
+              <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+              Saving Draft...
+            {:else}
+              Save as Draft
+            {/if}
           </Button>
         </CardContent>
       </Card>

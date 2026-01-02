@@ -4,9 +4,10 @@ import { ProductCRUD } from '$lib/db/product';
 import { TagCRUD } from '$lib/db/tag';
 import { SizeCRUD } from '$lib/db/size';
 import { CategoryCRUD } from '$lib/db/category';
-import { handleFileUpload } from '$lib/server/minio';
+import { handleFileUpload, deleteFileById } from '$lib/server/minio';
 import { db } from '$lib/db/drizzle';
-import { productImage, productTag, productSize, eq } from '$lib/db/schema';
+import { productImage, productTag, productSize } from '$lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const load = (async ({ params }) => {
   const [productResult, categories, tags, sizes] = await Promise.all([
@@ -29,7 +30,7 @@ export const load = (async ({ params }) => {
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {
-  default: async ({ params, request }) => {
+  update: async ({ params, request }) => {
     const formData = await request.formData();
     const productId = params.id;
 
@@ -48,7 +49,10 @@ export const actions: Actions = {
     const isFeatured = formData.get('isFeatured') === 'on' || formData.get('isFeatured') === 'true';
     const metaTitle = formData.get('metaTitle') as string;
     const metaDescription = formData.get('metaDescription') as string;
+    const isPublished = formData.get('isPublished') === 'true';
     const images = formData.getAll('images') as File[];
+
+    console.log(`[Product Update] Recevied productId: ${productId}, name: ${name}, categoryId: ${categoryId}`);
 
     // Complex fields
     const tagIds = formData.getAll('tagIds') as string[];
@@ -82,6 +86,7 @@ export const actions: Actions = {
         lowStockThreshold,
         categoryId: categoryId || null,
         isActive,
+        isPublished,
         isFeatured,
         metaTitle: metaTitle || null,
         metaDescription: metaDescription || null,
@@ -141,6 +146,7 @@ export const actions: Actions = {
             id: crypto.randomUUID(),
             productId,
             url: uploadResult.url,
+            remoteId: uploadResult.id,
             altText: name,
             sortOrder: ++maxSortOrder,
             isPrimary: maxSortOrder === 0,
@@ -150,8 +156,88 @@ export const actions: Actions = {
 
       return { success: true };
     } catch (error) {
+      if (typeof error === 'object' && error !== null && 'status' in error && 'location' in error) {
+        throw error;
+      }
       console.error('Update product error:', error);
-      return fail(500, { error: 'Failed to update product' });
+
+      let message = 'Failed to update product';
+      if (error && typeof error === 'object') {
+        const pgError = error as any;
+        if (pgError.detail) {
+          message = pgError.detail;
+        } else if (pgError.message) {
+          if (pgError.message.includes('unique constraint') && pgError.message.includes('sku')) {
+            message = 'A product with this SKU already exists. Product SKUs must be unique.';
+          } else {
+            message = pgError.message;
+          }
+        }
+      }
+
+      return fail(500, { error: message });
+    }
+  },
+  uploadImageUrl: async ({ request, params }) => {
+    const productId = params.id;
+    const formData = await request.formData();
+    const url = formData.get('url') as string;
+
+    if (!url) {
+      return fail(400, { error: 'URL is required' });
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch image from URL');
+
+      const blob = await response.blob();
+      const filename = url.split('/').pop()?.split('?')[0] || 'image.webp';
+      const file = new File([blob], filename, { type: blob.type });
+
+      const uploadResult = await handleFileUpload(file, 'products');
+
+      // Get current max sort order
+      const currentImages = await db.select().from(productImage).where(eq(productImage.productId, productId));
+      const maxSortOrder = currentImages.reduce((max, img) => Math.max(max, img.sortOrder), -1);
+
+      const [newImage] = await db.insert(productImage).values({
+        id: crypto.randomUUID(),
+        productId,
+        url: uploadResult.url,
+        remoteId: uploadResult.id,
+        altText: 'Product Image',
+        sortOrder: maxSortOrder + 1,
+        isPrimary: maxSortOrder === -1,
+      }).returning();
+
+      return { image: newImage };
+    } catch (error) {
+      console.error('Upload image URL error:', error);
+      return fail(500, { error: 'Failed to upload image from URL' });
+    }
+  },
+  deleteImage: async ({ request }) => {
+    const formData = await request.formData();
+    const imageId = formData.get('imageId') as string;
+    const objectId = formData.get('objectId') as string;
+
+    if (!imageId || !objectId) {
+      return fail(400, { error: 'Image ID and Object ID are required' });
+    }
+
+    try {
+      console.log(`--- [Product Image Delete] Step 1: Deleting from MinIO. Object: ${objectId} ---`);
+      await deleteFileById('products', objectId);
+
+      console.log(`[Product Image Delete] Step 2: Deleting from Database. ID: ${imageId}`);
+      await ProductCRUD.removeImage(imageId);
+
+      console.log('--- [Product Image Delete] Process Complete ---');
+      return { success: true };
+    } catch (error) {
+      console.error('[Product Image Delete] Critical Error:', error);
+      return fail(500, { error: 'Failed to delete image' });
     }
   },
 };

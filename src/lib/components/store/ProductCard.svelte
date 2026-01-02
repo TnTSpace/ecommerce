@@ -1,8 +1,26 @@
 <script lang="ts">
-  import { Heart, Plus, Star, Truck, Store as StoreIcon } from "@lucide/svelte";
+  import {
+    Heart,
+    Plus,
+    Star,
+    Truck,
+    Eye,
+    Zap,
+    ShoppingCart,
+    Minus,
+  } from "@lucide/svelte";
   import { formatPrice } from "$lib/fxns";
+  import { cart } from "$lib/store/cart.svelte";
+  import { toast } from "svelte-sonner";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { Separator } from "$lib/components/ui/separator/index.js";
+  import { cn } from "$lib/utils.js";
+  import QuickView from "./QuickView.svelte";
+  import QuickPurchaseDialog from "./QuickPurchaseDialog.svelte";
 
   interface Props {
+    class?: string;
     product: {
       id: string;
       name: string;
@@ -15,13 +33,16 @@
       averageRating?: number;
       reviewCount?: number;
     };
+    viewMode?: "grid" | "list";
     dealLabel?: string;
     showOfficialBadge?: boolean;
     showExpressBadge?: boolean;
   }
 
   let {
+    class: className = "",
     product,
+    viewMode = "grid",
     dealLabel,
     showOfficialBadge = false,
     showExpressBadge = false,
@@ -29,6 +50,8 @@
 
   let isWishlisted = $state(false);
   let isHovered = $state(false);
+  let showQuickView = $state(false);
+  let showQuickPurchase = $state(false);
 
   const primaryImage = $derived(
     product.images?.[0]?.url || "/placeholder-product.jpg",
@@ -56,126 +79,295 @@
   const addToCart = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // TODO: Add to cart logic
+    cart.addItem(product);
+    toast.success(`${product.name} added to cart`, {
+      description: "You can view your cart by clicking the icon at the top.",
+      position: "top-center",
+    });
+  };
+  const categoryInitial = (categoryName: string) => {
+    return categoryName
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase();
+  };
+  const productInCart = $derived(
+    cart.items.find((item) => item.product.id === product.id),
+  );
+  const cartQuantity = $derived(productInCart ? productInCart.quantity : 0);
+
+  const decrementCart = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (cartQuantity > 0) {
+      cart.updateQuantity(product.id, cartQuantity - 1);
+    }
   };
 </script>
 
-<a
-  href="/products/{product.id}"
-  class="group relative block overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-lg"
+{#snippet quantityWidget(isMobileMode: boolean)}
+  <div class="flex items-center gap-1">
+    {#if cartQuantity > 0}
+      <div
+        class="flex items-center rounded-xl border border-border bg-muted/20"
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          class="rounded-none hover:bg-destructive/10 hover:text-destructive"
+          onclick={decrementCart}
+        >
+          <Minus class="h-4 w-4" />
+        </Button>
+        <div class="flex min-w-[2rem] items-center justify-center px-1">
+          <span class="text-sm font-bold">{cartQuantity}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          class="rounded-none hover:bg-primary/10 hover:text-primary"
+          onclick={addToCart}
+        >
+          <Plus class="h-4 w-4" />
+        </Button>
+      </div>
+    {:else}
+      <Button
+        variant="default"
+        class="w-full rounded-xl font-bold"
+        onclick={addToCart}
+        disabled={product.stockQuantity === 0}
+      >
+        <Plus class="mr-2 h-4 w-4" />
+        {isMobileMode ? "Add" : "Add to Cart"}
+      </Button>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet actionButtons()}
+  <div class="flex items-center gap-2">
+    <Button
+      variant="outline"
+      size="icon"
+      class="rounded-xl border-none bg-muted/20 hover:bg-primary/10 hover:text-primary"
+      onclick={(e) => {
+        e.preventDefault();
+        showQuickView = true;
+      }}
+      title="Quick View"
+    >
+      <Eye class="h-4 w-4" />
+    </Button>
+    <Button
+      variant="default"
+      size="icon"
+      class="rounded-xl shadow-lg shadow-primary/20"
+      onclick={(e) => {
+        e.preventDefault();
+        showQuickPurchase = true;
+      }}
+      title="Buy Now"
+    >
+      <Zap class="h-4 w-4 fill-current" />
+    </Button>
+    <Button
+      variant="outline"
+      size="icon"
+      class={cn(
+        "rounded-xl border-none bg-muted/20 transition-colors",
+        isWishlisted
+          ? "bg-destructive/5 text-destructive"
+          : "hover:bg-destructive/10 hover:text-destructive",
+      )}
+      onclick={toggleWishlist}
+      title="Wishlist"
+    >
+      <Heart class="h-4 w-4" fill={isWishlisted ? "currentColor" : "none"} />
+    </Button>
+  </div>
+{/snippet}
+
+<article
+  class={cn(
+    "group relative overflow-hidden bg-card transition-all duration-300 hover:shadow-lg",
+    viewMode === "list"
+      ? "flex flex-col rounded-xl border border-border"
+      : "flex flex-col rounded-xl border border-border",
+    className,
+  )}
   onmouseenter={() => (isHovered = true)}
   onmouseleave={() => (isHovered = false)}
 >
-  <!-- Deal Badge -->
-  {#if dealLabel}
-    <div
-      class="absolute left-0 top-3 z-10 rounded-r-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground"
-    >
-      {dealLabel}
-    </div>
-  {/if}
-
-  <!-- Wishlist Button -->
-  <button
-    type="button"
-    onclick={toggleWishlist}
-    class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-card/80 backdrop-blur-sm transition-all hover:bg-card {isWishlisted
-      ? 'text-red-500'
-      : 'text-muted-foreground'}"
+  <!-- Main Content Area (Image + Info) -->
+  <div
+    class={cn(
+      "flex flex-1",
+      viewMode === "list" ? "flex-row border-b border-border/50" : "flex-col",
+    )}
   >
-    <Heart class="h-4 w-4" fill={isWishlisted ? "currentColor" : "none"} />
-  </button>
-
-  <!-- Product Image -->
-  <div class="relative aspect-square overflow-hidden bg-muted">
-    <img
-      src={primaryImage}
-      alt={product.images?.[0]?.altText || product.name}
-      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-      loading="lazy"
-    />
-
-    <!-- Out of Stock Overlay -->
-    {#if product.stockQuantity === 0}
-      <div
-        class="absolute inset-0 flex items-center justify-center bg-background/80"
-      >
-        <span
-          class="rounded-md bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground"
+    <!-- Image Area -->
+    <a
+      href="/products/{product.id}"
+      class={cn(
+        "relative overflow-hidden bg-muted/50 transition-colors hover:bg-muted",
+        viewMode === "list"
+          ? "w-32 flex-shrink-0 sm:w-40"
+          : "aspect-square w-full",
+      )}
+    >
+      <!-- Campaign/Deal Badge -->
+      {#if dealLabel}
+        <div
+          class="absolute left-2 top-2 z-10 rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-primary-foreground shadow-lg"
         >
-          Out of Stock
-        </span>
-      </div>
-    {/if}
-  </div>
+          {dealLabel}
+        </div>
+      {/if}
 
-  <!-- Product Info -->
-  <div class="p-3">
-    <!-- Name -->
-    <h3 class="line-clamp-2 text-sm font-medium text-foreground">
-      {product.name}
-    </h3>
-
-    <!-- Price Section -->
-    <div class="mt-2 flex items-baseline gap-2">
-      <span class="text-base font-bold text-foreground">
-        {formatPrice(product.basePrice)}
-      </span>
+      <!-- Discount Badge -->
       {#if hasDiscount}
-        <span class="text-xs text-muted-foreground line-through">
-          {formatPrice(product.compareAtPrice!)}
-        </span>
         <span
-          class="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
+          class="absolute bottom-2 left-2 z-10 rounded-md bg-black/70 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm"
         >
           -{discountPercent}%
         </span>
       {/if}
-    </div>
 
-    <!-- Rating -->
-    {#if product.averageRating}
-      <div class="mt-1.5 flex items-center gap-1">
-        <Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
-        <span class="text-xs font-medium text-foreground"
-          >{product.averageRating.toFixed(1)}</span
+      <img
+        src={primaryImage}
+        alt={product.images?.[0]?.altText || product.name}
+        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        loading="lazy"
+      />
+
+      <!-- Out of Stock -->
+      {#if product.stockQuantity === 0}
+        <div
+          class="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[1px]"
         >
-        {#if product.reviewCount}
-          <span class="text-xs text-muted-foreground"
-            >({product.reviewCount})</span
+          <span
+            class="rounded-md bg-destructive px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-destructive-foreground shadow-sm"
           >
+            Sold Out
+          </span>
+        </div>
+      {/if}
+    </a>
+
+    <!-- Info Area -->
+    <div class="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
+      <!-- Badge Section -->
+      <div class="flex min-h-[1.25rem] flex-wrap items-center gap-2">
+        {#if showExpressBadge}
+          <small
+            class="flex h-5 items-center justify-center rounded border border-primary/20 bg-primary/10 px-2 text-[10px] font-bold italic uppercase text-primary"
+          >
+            <Truck class="mr-1 h-3 w-3" />
+            Express
+          </small>
+        {/if}
+        {#if product.category}
+          <small
+            class="flex h-5 items-center justify-center rounded border border-border bg-muted px-2 text-[10px] font-bold uppercase text-muted-foreground"
+          >
+            <span class="md:hidden"
+              >{categoryInitial(product.category.name)}</span
+            >
+            <span class="hidden md:inline">{product.category.name}</span>
+          </small>
         {/if}
       </div>
-    {/if}
 
-    <!-- Badges -->
-    <div class="mt-2 flex flex-wrap gap-1">
-      {#if showOfficialBadge}
-        <span
-          class="inline-flex items-center gap-1 rounded-md border border-primary/30 px-1.5 py-0.5 text-xs text-primary"
+      <!-- Name -->
+      <a href="/products/{product.id}" class="group/name mt-1">
+        <h3
+          class="line-clamp-1 text-sm font-medium leading-snug text-foreground transition-colors group-hover/name:text-primary"
         >
-          <StoreIcon class="h-3 w-3" />
-          Official Store
-        </span>
-      {/if}
-      {#if showExpressBadge}
-        <span
-          class="inline-flex items-center gap-1 rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-500"
-        >
-          <Truck class="h-3 w-3" />
-          Express
-        </span>
+          {product.name}
+        </h3>
+      </a>
+
+      <!-- Price Section -->
+      <div class="mt-1 flex flex-col gap-0.5">
+        <div class="text-lg font-bold leading-tight text-foreground">
+          {formatPrice(product.basePrice)}
+        </div>
+        {#if hasDiscount}
+          <div
+            class="text-[11px] text-muted-foreground decoration-destructive/50 line-through"
+          >
+            {formatPrice(product.compareAtPrice!)}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Rating (List view specific info row) -->
+      {#if viewMode === "list"}
+        <div class="mt-2 flex items-center gap-3">
+          {#if product.averageRating}
+            <div class="flex items-center gap-1">
+              <Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span class="text-[10px] font-bold text-foreground">
+                {product.averageRating.toFixed(1)}
+              </span>
+            </div>
+          {/if}
+        </div>
       {/if}
     </div>
   </div>
 
-  <!-- Add to Cart Button -->
-  <button
-    type="button"
-    onclick={addToCart}
-    disabled={product.stockQuantity === 0}
-    class="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
-  >
-    <Plus class="h-4 w-4" />
-  </button>
-</a>
+  <!-- Action Area (Bottom for both, but different inner layouts) -->
+  <div class="p-3">
+    {#if viewMode === "list"}
+      <div class="flex items-center justify-between gap-4">
+        {@render actionButtons()}
+        <div class="flex-1 max-w-[150px]">
+          {@render quantityWidget(true)}
+        </div>
+      </div>
+    {:else}
+      <!-- Grid Mode Actions -->
+      <div class="flex flex-col gap-2">
+        <!-- Row 1: Quick View, Buy Now, Wishlist, Rating -->
+        <div class="flex items-center justify-between">
+          {@render actionButtons()}
+          <div class="flex flex-col items-end gap-1">
+            {#if product.averageRating}
+              <div class="flex items-center gap-1">
+                <Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                <span class="text-[10px] font-bold text-foreground">
+                  {product.averageRating.toFixed(1)}
+                </span>
+              </div>
+            {/if}
+          </div>
+        </div>
+        <!-- Row 2: Add to Cart / Quantity Widget -->
+        <div class="mt-1">
+          {@render quantityWidget(false)}
+        </div>
+      </div>
+    {/if}
+  </div>
+</article>
+
+<QuickView
+  bind:open={showQuickView}
+  {product}
+  onClose={() => (showQuickView = false)}
+/>
+<QuickPurchaseDialog
+  bind:open={showQuickPurchase}
+  {product}
+  onClose={() => (showQuickPurchase = false)}
+/>
+
+<style>
+  /* Custom hover transition for better feel */
+  a {
+    will-change: transform, box-shadow;
+  }
+</style>

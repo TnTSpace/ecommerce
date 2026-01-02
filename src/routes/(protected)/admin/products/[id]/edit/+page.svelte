@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import { enhance } from "$app/forms";
+  import { enhance, deserialize } from "$app/forms";
   import { goto, invalidateAll } from "$app/navigation";
   import {
     Card,
@@ -57,6 +57,7 @@
   let isFeatured = $state(false);
   let metaTitle = $state("");
   let metaDescription = $state("");
+  let isPublished = $state(true);
 
   // Existing Images
   let existingImages = $state<any[]>([]);
@@ -64,6 +65,7 @@
   let newImagePreviews: string[] = $state([]);
   let imageUrlInput = $state("");
   let isProcessingImage = $state(false);
+  let deletingImageId = $state<string | null>(null);
 
   // Tags & Sizes & Features
   let selectedTagIds = $state<string[]>([]);
@@ -97,6 +99,7 @@
       categoryId = data.product.categoryId || "";
       isActive = data.product.isActive;
       isFeatured = data.product.isFeatured;
+      isPublished = data.product.isPublished;
       metaTitle = data.product.metaTitle || "";
       metaDescription = data.product.metaDescription || "";
 
@@ -155,22 +158,69 @@
 
     isProcessingImage = true;
     try {
-      const response = await fetch(imageUrlInput);
-      if (!response.ok) throw new Error("Failed to fetch image from URL");
+      const formData = new FormData();
+      formData.append("url", imageUrlInput);
 
-      const blob = await response.blob();
-      const fileName = imageUrlInput.split("/").pop() || "image.webp";
-      const file = new File([blob], fileName, { type: blob.type });
+      const response = await fetch("?/uploadImageUrl", {
+        method: "POST",
+        body: formData,
+      });
 
-      await processAndAddFile(file);
-      imageUrlInput = "";
-    } catch (error) {
+      const result = deserialize(await response.text());
+
+      if (result.type === "success" && result.data?.image) {
+        existingImages = [...existingImages, result.data.image];
+        imageUrlInput = "";
+        toast.success("Image added from URL");
+      } else {
+        throw new Error(
+          result.type === "failure"
+            ? result.data?.error
+            : "Failed to upload image",
+        );
+      }
+    } catch (error: any) {
       console.error("URL Image error:", error);
-      toast.error(
-        "Failed to load image from URL. Ensure the URL is valid and CORS allowed.",
-      );
+      toast.error(error.message || "Failed to load image from URL");
     } finally {
       isProcessingImage = false;
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string, url: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+
+    // The url in DB is the directUrl: https://api.minio.toolsntuts.com/products/filename.jpg
+    // The objectId is the part after the bucket name.
+    const urlParts = url.split("/");
+    const objectId = urlParts[urlParts.length - 1];
+
+    deletingImageId = imageId;
+    try {
+      const formData = new FormData();
+      formData.append("imageId", imageId);
+      formData.append("objectId", objectId);
+
+      const response = await fetch("?/deleteImage", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = deserialize(await response.text());
+
+      if (result.type === "success") {
+        existingImages = existingImages.filter((img) => img.id !== imageId);
+        toast.success("Image deleted successfully");
+        await invalidateAll();
+      } else {
+        // @ts-ignore
+        throw new Error(result.data?.error || "Failed to delete image");
+      }
+    } catch (error: any) {
+      console.error("Delete image error:", error);
+      toast.error(error.message || "Failed to delete image");
+    } finally {
+      deletingImageId = null;
     }
   };
 
@@ -238,11 +288,12 @@
   }
 
   async function fetchCategories(query: string) {
-    return data.categories
+    const categories = data.categories || [];
+    return categories
       .filter((c: any) => c.name.toLowerCase().includes(query.toLowerCase()))
       .map((c: any) => ({
         ...c,
-        image: c.image ? { url: c.image } : null,
+        image: c.imageFile?.url ? { url: c.imageFile.url } : null,
       }));
   }
 
@@ -277,6 +328,7 @@
   </div>
 
   <form
+    action="?/update"
     method="POST"
     enctype="multipart/form-data"
     use:enhance={() => {
@@ -286,10 +338,20 @@
         if (result.type === "success") {
           toast.success("Product updated successfully");
           await invalidateAll();
+        } else if (result.type === "redirect") {
+          toast.success(
+            isPublished
+              ? "Product updated and published"
+              : "Draft updated successfully",
+          );
+          goto(result.location);
         } else if (result.type === "failure") {
-          // const message = result.data?.error || "Failed to update product";
-          console.log(result.data)
-          toast.error("Failed to update product");
+          const errorMsg = result.data?.error;
+          toast.error(
+            typeof errorMsg === "string"
+              ? errorMsg
+              : "Failed to update product",
+          );
         }
       };
     }}
@@ -298,6 +360,7 @@
     <!-- Hidden fields for JSON data -->
     <input type="hidden" name="features" value={JSON.stringify(features)} />
     <input type="hidden" name="sizes" value={JSON.stringify(productSizes)} />
+    <input type="hidden" name="isPublished" value={String(isPublished)} />
 
     <!-- Main Content -->
     <div class="space-y-6 lg:col-span-2">
@@ -471,8 +534,20 @@
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="space-y-2">
-              <Label for="sku">SKU *</Label>
-              <Input id="sku" name="sku" bind:value={sku} required />
+              <div class="flex items-center justify-between">
+                <Label for="sku">SKU *</Label>
+              </div>
+              <Input
+                id="sku"
+                name="sku"
+                bind:value={sku}
+                required
+                readonly
+                class="bg-muted cursor-not-allowed opacity-80"
+              />
+              <p class="text-[10px] text-muted-foreground">
+                Automated system ID
+              </p>
             </div>
             <div class="space-y-2">
               <Label for="stockQuantity">Stock Quantity *</Label>
@@ -661,16 +736,33 @@
             <!-- Existing Images -->
             {#each existingImages as img}
               <div
-                class="group relative aspect-square overflow-hidden rounded-lg border bg-muted shadow-sm"
+                class="group relative aspect-square overflow-hidden rounded-lg border bg-muted shadow-sm hover:border-primary/50 transition-colors"
               >
                 <img
                   src={img.url}
                   alt="Product"
                   class="h-full w-full object-cover"
                 />
+                <div
+                  class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                >
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    class="h-8 w-8 rounded-full shadow-lg"
+                    disabled={deletingImageId === img.id}
+                    onclick={() => handleDeleteImage(img.id, img.url)}
+                  >
+                    {#if deletingImageId === img.id}
+                      <Loader2 class="size-4 animate-spin" />
+                    {:else}
+                      <Trash2 class="size-4" />
+                    {/if}
+                  </Button>
+                </div>
                 {#if img.isPrimary}
                   <div class="absolute left-1.5 top-1.5">
-                    <Badge class="h-5 px-1.5 text-[10px] bg-primary"
+                    <Badge class="h-5 px-1.5 text-[10px] bg-primary shadow-sm"
                       >Primary</Badge
                     >
                   </div>
@@ -731,21 +823,28 @@
             type="submit"
             class="w-full font-bold shadow-sm"
             disabled={isSubmitting}
+            onclick={() => (isPublished = true)}
           >
-            {#if isSubmitting}
+            {#if isSubmitting && isPublished}
               <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-              Saving Changes...
+              Updating...
             {:else}
-              Save Changes
+              Update & Publish
             {/if}
           </Button>
           <Button
-            type="button"
+            type="submit"
             variant="outline"
             class="w-full"
-            onclick={() => goto("/admin/products")}
+            disabled={isSubmitting}
+            onclick={() => (isPublished = false)}
           >
-            Back to Products
+            {#if isSubmitting && !isPublished}
+              <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+              Saving Draft...
+            {:else}
+              Save as Draft
+            {/if}
           </Button>
         </CardContent>
       </Card>
@@ -761,6 +860,17 @@
             label="Category"
             entityName="Category"
             bind:value={categoryId}
+            initialItem={(() => {
+              const cat = data.categories.find((c) => c.id === categoryId);
+              return cat
+                ? {
+                    ...cat,
+                    image: cat.imageFile?.url
+                      ? { url: cat.imageFile.url }
+                      : null,
+                  }
+                : null;
+            })()}
             fetchOptions={fetchCategories}
             placeholder="Search categories..."
           />

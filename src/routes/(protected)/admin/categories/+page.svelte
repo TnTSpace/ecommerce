@@ -85,9 +85,17 @@
               <Table.Cell>
                 <div class="flex items-center gap-3">
                   <div
-                    class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10"
+                    class="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted overflow-hidden shrink-0"
                   >
-                    <FolderTree class="h-5 w-5 text-primary" />
+                    {#if category.imageFile?.url}
+                      <img
+                        src={category.imageFile.url}
+                        alt={category.name}
+                        class="h-full w-full object-cover"
+                      />
+                    {:else}
+                      <FolderTree class="h-5 w-5 text-primary" />
+                    {/if}
                   </div>
                   <div>
                     <p class="font-medium text-foreground">{category.name}</p>
@@ -117,9 +125,11 @@
               <Table.Cell>
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal class="h-4 w-4" />
-                    </Button>
+                    {#snippet child({ props })}
+                      <Button {...props} variant="ghost" size="icon">
+                        <MoreHorizontal class="h-4 w-4" />
+                      </Button>
+                    {/snippet}
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content align="end">
                     <DropdownMenu.Item>
