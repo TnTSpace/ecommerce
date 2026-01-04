@@ -197,7 +197,7 @@
     {:else}
       <Button
         variant="default"
-        class="w-full rounded-xl font-bold"
+        class="w-full"
         onclick={addToCart}
         disabled={product.stockQuantity === 0}
       >
@@ -316,7 +316,7 @@
     </a>
 
     <!-- Info Area -->
-    <div class="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
+    <div class="flex min-w-0 flex-1 flex-col p-2 pb-0 sm:pb-0">
       <!-- Badge Section -->
       <div class="flex min-h-[1.25rem] flex-wrap items-center gap-2">
         {#if product.category}
@@ -371,7 +371,7 @@
   </div>
 
   <!-- Action Area (Bottom for both, but different inner layouts) -->
-  <div class="p-3">
+  <div class="p-2">
     {#if viewMode === "list"}
       <div class="flex items-center justify-between gap-4">
         {@render actionButtons()}

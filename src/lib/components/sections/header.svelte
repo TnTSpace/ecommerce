@@ -8,11 +8,17 @@
   import { Role, getNavigation, Constants } from "$lib/constants/index";
   import AuthDialog from "$lib/authentication/ui/user/auth-dialog.svelte";
   import { cart } from "$lib/store/cart.svelte";
+  import Cookie from "$lib/components/icons/Cookie.svelte";
+  import * as CookieConsent from "vanilla-cookieconsent";
 
   const user = page.data.user as User | undefined;
   const navData = getNavigation(page.url.pathname);
   const navigation = $derived(user ? navData.privateNav : navData.publicNav);
   const isActive = (path: string) => page.url.pathname === path;
+
+  const showCookiePreferences = () => {
+    CookieConsent.showPreferences();
+  };
 </script>
 
 <div class="bg-background sticky top-0 left-0 z-[11]">
@@ -21,7 +27,7 @@
       <div class="flex h-16 items-center justify-between">
         <BrandLink />
         <div class="flex items-center space-x-4">
-          <nav class="hidden space-x-2 md:flex">
+          <nav class="hidden space-x-2 lg:flex">
             {#each navigation as item}
               {#if !user || (user && item.roles.includes(user.role as Role))}
                 <Button
@@ -37,6 +43,17 @@
           </nav>
 
           <div class="flex items-center gap-2">
+            <!-- Cookie Preferences (Desktop only) -->
+            <Button
+              onclick={showCookiePreferences}
+              variant="outline"
+              size="icon"
+              class="hidden md:inline-flex cursor-pointer"
+              aria-label="Cookie Preferences"
+            >
+              <Cookie class="size-4" />
+            </Button>
+
             <ModeToggle />
 
             <Button

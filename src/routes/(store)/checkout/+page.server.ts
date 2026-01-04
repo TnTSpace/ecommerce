@@ -4,6 +4,7 @@ import { auth } from '$lib/auth';
 import { CartCRUD } from '$lib/db/cart';
 import { OrderCRUD } from '$lib/db/order';
 import { initializeTransaction, generatePaymentReference } from '$lib/server/paystack.server';
+import { jumiaShipping } from '$lib/server/shipping';
 import { env } from '$env/dynamic/private';
 
 export const load = (async ({ request, cookies, url }) => {
@@ -26,9 +27,12 @@ export const load = (async ({ request, cookies, url }) => {
     throw redirect(303, '/cart');
   }
 
+  const zones = await jumiaShipping.getZones();
+
   return {
     user: session?.user || null,
     cart,
+    shippingZones: zones
   };
 }) satisfies PageServerLoad;
 
@@ -56,6 +60,9 @@ export const actions: Actions = {
 
     // Extract form data
     const email = formData.get('email') as string;
+    const deliveryMethod = (formData.get('deliveryMethod') as string) || 'shipping';
+    const pickupDetails = (formData.get('pickupDetails') as string) || '';
+
     const shippingAddress = {
       fullName: formData.get('shippingFullName') as string,
       addressLine1: formData.get('shippingAddressLine1') as string,
@@ -67,14 +74,38 @@ export const actions: Actions = {
       phone: formData.get('shippingPhone') as string,
     };
 
-    if (!email || !shippingAddress.fullName || !shippingAddress.addressLine1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.phone) {
+    // Validate based on delivery method
+    if (!email || !shippingAddress.fullName || !shippingAddress.phone) {
       return fail(400, { error: 'Missing required fields' });
     }
 
-    // Calculate totals
+    if (deliveryMethod === 'shipping') {
+      if (!shippingAddress.addressLine1 || !shippingAddress.city || !shippingAddress.state) {
+        return fail(400, { error: 'Missing shipping address fields' });
+      }
+    } else if (deliveryMethod === 'pickup') {
+      if (!pickupDetails.trim()) {
+        return fail(400, { error: 'Please provide pickup details' });
+      }
+    }
+
+    // Calculate totals - shipping is free for pickup
     const subtotal = cart.subtotal || 0;
     const tax = 0;
-    const shippingCost = 0;
+
+    let shippingCost = 0;
+    if (deliveryMethod === 'shipping') {
+      const formShippingCost = formData.get('shippingCost') as string;
+      if (formShippingCost) {
+        shippingCost = parseFloat(formShippingCost);
+      } else {
+        const zone = await jumiaShipping.getZoneForCity(shippingAddress.city);
+        if (zone) {
+          shippingCost = await jumiaShipping.calculateShipping(zone.zone);
+        }
+      }
+    }
+
     const total = subtotal + tax + shippingCost;
 
     // Create order
@@ -101,6 +132,8 @@ export const actions: Actions = {
         total: total.toFixed(2),
         shippingAddress,
         billingAddress: shippingAddress,
+        deliveryMethod: deliveryMethod as 'shipping' | 'pickup',
+        pickupDetails: deliveryMethod === 'pickup' ? pickupDetails : null,
       },
       orderItems
     );

@@ -4,6 +4,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
+  import { Textarea } from "$lib/components/ui/textarea/index.js";
   import { browser } from "$app/environment";
   import { page } from "$app/state";
   import { toast } from "svelte-sonner";
@@ -13,6 +14,8 @@
     Truck,
     AlertCircle,
     ShoppingBag,
+    MapPin,
+    CheckCircle2,
   } from "@lucide/svelte";
   import SelectComponent from "$lib/components/ui/select/select-component.svelte";
   import { formatPrice } from "$lib/fxns";
@@ -34,6 +37,10 @@
   const user = $derived(page.data.user);
   const isLoggedIn = $derived(!!user);
 
+  // Delivery method
+  let deliveryMethod = $state<"shipping" | "pickup">("shipping");
+  let pickupDetails = $state("");
+
   // Shipping data from layout
   const zones = $derived(page.data.shippingZones || []);
   let selectedZoneId = $state("");
@@ -54,7 +61,10 @@
     zones.map((z: any) => ({ label: z.zone, value: z.id.toString() })),
   );
 
-  const shippingFee = $derived(selectedZone ? 1500 : 0);
+  // Shipping fee: 0 for pickup, 1500 for shipping
+  const shippingFee = $derived(
+    deliveryMethod === "pickup" ? 0 : selectedZone ? 1500 : 0,
+  );
   const totalAmount = $derived(
     parseFloat(product?.basePrice || 0) + shippingFee,
   );
@@ -92,8 +102,20 @@
 
   const handlePurchase = async (e: Event) => {
     e.preventDefault();
-    if (!email || !fullName || !phone || !selectedZoneId || !selectedCity) {
-      toast.error("Please fill in all details including delivery info");
+
+    // Validate based on delivery method
+    if (!email || !fullName || !phone) {
+      toast.error("Please fill in all contact details");
+      return;
+    }
+
+    if (deliveryMethod === "shipping" && (!selectedZoneId || !selectedCity)) {
+      toast.error("Please select a delivery zone and city");
+      return;
+    }
+
+    if (deliveryMethod === "pickup" && !pickupDetails.trim()) {
+      toast.error("Please describe where and when you plan to pickup");
       return;
     }
 
@@ -107,9 +129,11 @@
           email,
           fullName,
           phone,
-          zoneId: selectedZone.zone,
-          city: selectedCity,
+          deliveryMethod,
+          zoneId: deliveryMethod === "shipping" ? selectedZone?.zone : null,
+          city: deliveryMethod === "shipping" ? selectedCity : null,
           shippingCost: shippingFee,
+          pickupDetails: deliveryMethod === "pickup" ? pickupDetails : null,
           userId: user?.id || null,
         }),
       });
@@ -191,7 +215,7 @@
       </div>
     </div>
 
-    <!-- Delivery Selection -->
+    <!-- Delivery Method Selection -->
     <div class="space-y-3 pt-2">
       <div class="flex items-center gap-2 mb-1">
         <Truck class="h-4 w-4 text-primary" />
@@ -201,46 +225,108 @@
         >
       </div>
 
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div class="space-y-1.5">
-          <Label class="text-[10px] uppercase ml-1">Zone</Label>
-          <SelectComponent
-            name="zone"
-            placeholder="Select Zone"
-            options={zoneOptions}
-            bind:value={selectedZoneId}
-            class="bg-muted/20"
-          />
-        </div>
-        <div class="space-y-1.5">
-          <Label class="text-[10px] uppercase ml-1">City</Label>
-          <SelectComponent
-            name="city"
-            placeholder="Select City"
-            options={cityOptions}
-            bind:value={selectedCity}
-            disabled={!selectedZoneId}
-            class="bg-muted/20"
-          />
-        </div>
+      <!-- Delivery Options -->
+      <div class="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onclick={() => (deliveryMethod = "shipping")}
+          class="text-left rounded-xl border-2 p-3 transition-all {deliveryMethod ===
+          'shipping'
+            ? 'border-primary bg-primary/5'
+            : 'border-border hover:border-primary/50'}"
+        >
+          <div class="flex items-center gap-2">
+            <Truck class="h-4 w-4 text-primary" />
+            <div>
+              <span class="text-xs font-bold">Jumia Shipping</span>
+              <p class="text-[10px] text-muted-foreground">Delivery</p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onclick={() => (deliveryMethod = "pickup")}
+          class="text-left rounded-xl border-2 p-3 transition-all {deliveryMethod ===
+          'pickup'
+            ? 'border-green-500 bg-green-500/5'
+            : 'border-border hover:border-green-500/50'}"
+        >
+          <div class="flex items-center gap-2">
+            <MapPin class="h-4 w-4 text-green-600" />
+            <div>
+              <span class="text-xs font-bold">Pickup</span>
+              <p class="text-[10px] text-green-600 font-bold">FREE</p>
+            </div>
+          </div>
+        </button>
       </div>
 
-      {#if selectedZone}
-        <div
-          class="mt-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-900 border border-border/50 shadow-inner"
-          transition:fade
-        >
-          <div class="flex items-center justify-between text-xs font-medium">
-            <span class="text-muted-foreground">Estimated Delivery</span>
-            <span class="text-foreground">24-48 Hours</span>
+      <!-- Jumia Shipping Zone Selection -->
+      {#if deliveryMethod === "shipping"}
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" transition:slide>
+          <div class="space-y-1.5">
+            <Label class="text-[10px] uppercase ml-1">Zone</Label>
+            <SelectComponent
+              name="zone"
+              placeholder="Select Zone"
+              options={zoneOptions}
+              bind:value={selectedZoneId}
+              class="bg-muted/20"
+            />
+          </div>
+          <div class="space-y-1.5">
+            <Label class="text-[10px] uppercase ml-1">City</Label>
+            <SelectComponent
+              name="city"
+              placeholder="Select City"
+              options={cityOptions}
+              bind:value={selectedCity}
+              disabled={!selectedZoneId}
+              class="bg-muted/20"
+            />
           </div>
         </div>
-      {:else}
-        <div
-          class="flex items-center gap-2 text-[10px] text-orange-500 font-bold bg-orange-50/50 dark:bg-orange-950/20 p-2 rounded-lg border border-orange-200/50"
-        >
-          <AlertCircle class="h-3 w-3" />
-          <span>Select a delivery zone to see shipping fee</span>
+
+        {#if selectedZone}
+          <div
+            class="mt-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-900 border border-border/50 shadow-inner"
+            transition:fade
+          >
+            <div class="flex items-center justify-between text-xs font-medium">
+              <span class="text-muted-foreground">Estimated Delivery</span>
+              <span class="text-foreground">24-48 Hours</span>
+            </div>
+          </div>
+        {:else}
+          <div
+            class="flex items-center gap-2 text-[10px] text-orange-500 font-bold bg-orange-50/50 dark:bg-orange-950/20 p-2 rounded-lg border border-orange-200/50"
+          >
+            <AlertCircle class="h-3 w-3" />
+            <span>Select a delivery zone to see shipping fee</span>
+          </div>
+        {/if}
+      {/if}
+
+      <!-- Pickup Details -->
+      {#if deliveryMethod === "pickup"}
+        <div class="space-y-2" transition:slide>
+          <Label for="pickupDetails" class="text-[10px] uppercase ml-1">
+            Pickup Details *
+          </Label>
+          <Textarea
+            id="pickupDetails"
+            bind:value={pickupDetails}
+            placeholder="Where and when will you pickup? (e.g., 'Will pickup at the Forge after Community Bible Study on Sunday')"
+            rows={2}
+            class="resize-none rounded-xl bg-muted/20"
+          />
+          <div
+            class="flex items-center gap-2 text-[10px] text-green-600 font-bold bg-green-50/50 dark:bg-green-950/20 p-2 rounded-lg border border-green-200/50"
+          >
+            <CheckCircle2 class="h-3 w-3" />
+            <span>Free Pickup - No shipping fee!</span>
+          </div>
         </div>
       {/if}
     </div>
@@ -258,11 +344,17 @@
         <div class="flex justify-between">
           <span class="text-muted-foreground">Shipping Fee</span>
           <span
-            class={selectedZone
-              ? "font-medium"
+            class={deliveryMethod === "pickup" || selectedZone
+              ? "font-medium text-green-600"
               : "italic text-muted-foreground"}
           >
-            {selectedZone ? formatPrice(shippingFee) : "Calculated above"}
+            {#if deliveryMethod === "pickup"}
+              Free (Pickup)
+            {:else if selectedZone}
+              {formatPrice(shippingFee)}
+            {:else}
+              Select zone
+            {/if}
           </span>
         </div>
         <div
@@ -281,7 +373,9 @@
       <Button
         type="submit"
         class="w-full h-14 rounded-2xl font-bold text-lg bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 group"
-        disabled={isLoading || !selectedCity}
+        disabled={isLoading ||
+          (deliveryMethod === "shipping" && !selectedCity) ||
+          (deliveryMethod === "pickup" && !pickupDetails.trim())}
       >
         {#if isLoading}
           <Loader2 class="mr-2 h-5 w-5 animate-spin" />

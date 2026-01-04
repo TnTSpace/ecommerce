@@ -1,0 +1,20 @@
+/*
+	Installed from github/TnTSpace/registry
+*/
+
+@import url('./reveal.css');
+@import url('./reveal-custom.css');
+
+/* .reveal {
+  height: 400px !important;
+}
+
+@media screen and (max-width: 767px) {
+  .reveal {
+    height: 300px !important;
+  }
+}
+
+.reveal .slides section * {
+  font-size: 16px !important;
+} */

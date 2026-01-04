@@ -3,7 +3,7 @@ import { cart, cartItem, product, productImage, productSize, size, type Cart, ty
 import { db } from "./drizzle";
 
 interface CartItemWithProduct extends CartItem {
-  product?: Product;
+  product?: Product & { images: ProductImage[] };
   productSize?: (ProductSize & { size?: Size }) | null;
 }
 

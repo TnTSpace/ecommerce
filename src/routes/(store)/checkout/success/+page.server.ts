@@ -30,7 +30,11 @@ export const load = (async ({ url }) => {
         orderResult.data.user?.email || verification.data.customer.email,
         {
           id: orderId,
-          total: formatPrice(orderResult.data.total)
+          orderNumber: orderResult.data.orderNumber,
+          total: formatPrice(orderResult.data.total),
+          deliveryMethod: orderResult.data.deliveryMethod as 'shipping' | 'pickup' | undefined,
+          pickupDetails: orderResult.data.pickupDetails,
+          shippingAddress: orderResult.data.shippingAddress as any,
         }
       );
     }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { goto } from "$app/navigation";
   import {
     Home,
     Package,
@@ -12,11 +13,17 @@
     ArrowUpDown,
     LayoutDashboard,
     History,
+    Search,
   } from "@lucide/svelte";
   import * as Drawer from "$lib/components/ui/drawer/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
+  import { Input } from "$lib/components/ui/input/index.js";
+  import Cookie from "$lib/components/icons/Cookie.svelte";
+  import * as CookieConsent from "vanilla-cookieconsent";
 
   let drawerOpen = $state(false);
+  let searchDrawerOpen = $state(false);
+  let searchQuery = $state("");
 
   const navLinks = [
     { name: "Home", href: "/", icon: Home },
@@ -39,6 +46,19 @@
 
   const toggleFilters = () => {
     window.dispatchEvent(new CustomEvent("open-filters"));
+  };
+
+  const handleSearch = (e: SubmitEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      searchDrawerOpen = false;
+      goto(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const showCookiePreferences = () => {
+    drawerOpen = false;
+    CookieConsent.showPreferences();
   };
 </script>
 
@@ -70,6 +90,15 @@
     <Package class="h-5 w-5" />
     <span>Products</span>
   </a>
+
+  <!-- Search -->
+  <button
+    onclick={() => (searchDrawerOpen = true)}
+    class="flex flex-1 flex-col items-center gap-1 py-1 text-[10px] font-medium text-muted-foreground hover:text-primary transition-colors"
+  >
+    <Search class="h-5 w-5" />
+    <span>Search</span>
+  </button>
 
   <!-- Sort (Products Page only) -->
   {#if isProductsPage}
@@ -103,64 +132,77 @@
         <span>More</span>
       </Drawer.Trigger>
       <Drawer.Content>
-        <div class="mx-auto w-full max-w-sm px-6 py-8">
-          <Drawer.Header class="px-0 pt-0">
+        <div
+          class="mx-auto w-full max-w-sm px-6 py-4 flex flex-col max-h-[70vh]"
+        >
+          <Drawer.Header class="px-0 pt-0 shrink-0">
             <Drawer.Title>Navigation</Drawer.Title>
             <Drawer.Description>Quick access to other pages</Drawer.Description>
           </Drawer.Header>
-          <div class="grid grid-cols-2 gap-4 py-6">
-            {#each navLinks as link}
-              <a
-                href={link.href}
-                onclick={() => (drawerOpen = false)}
-                class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
-              >
-                <link.icon class="h-6 w-6 text-primary" />
-                <span class="text-sm font-medium">{link.name}</span>
-              </a>
-            {/each}
-
-            {#if page.data.user?.role === "admin"}
-              <a
-                href="/admin"
-                onclick={() => (drawerOpen = false)}
-                class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
-              >
-                <LayoutDashboard class="h-6 w-6 text-primary" />
-                <span class="text-sm font-medium text-primary font-bold"
-                  >Admin</span
+          <div class="overflow-y-auto flex-1 py-4">
+            <div class="grid grid-cols-2 gap-3">
+              {#each navLinks as link}
+                <a
+                  href={link.href}
+                  onclick={() => (drawerOpen = false)}
+                  class="flex flex-col items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-accent"
                 >
-              </a>
-            {/if}
+                  <link.icon class="h-5 w-5 text-primary" />
+                  <span class="text-xs font-medium">{link.name}</span>
+                </a>
+              {/each}
 
-            <a
-              href="/account"
-              onclick={() => (drawerOpen = false)}
-              class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
-            >
-              <UserIcon class="h-6 w-6 text-primary" />
-              <span class="text-sm font-medium">Account</span>
-            </a>
-            <a
-              href="/cart"
-              onclick={() => (drawerOpen = false)}
-              class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
-            >
-              <ShoppingCart class="h-6 w-6 text-primary" />
-              <span class="text-sm font-medium">Cart</span>
-            </a>
-            <a
-              href="/orders"
-              onclick={() => (drawerOpen = false)}
-              class="flex flex-col items-center gap-2 rounded-xl border border-border p-4 transition-colors hover:bg-accent"
-            >
-              <History class="h-6 w-6 text-primary" />
-              <span class="text-sm font-medium">Orders</span>
-            </a>
+              {#if page.data.user?.role === "admin"}
+                <a
+                  href="/admin"
+                  onclick={() => (drawerOpen = false)}
+                  class="flex flex-col items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-accent"
+                >
+                  <LayoutDashboard class="h-5 w-5 text-primary" />
+                  <span class="text-xs font-medium text-primary font-bold"
+                    >Admin</span
+                  >
+                </a>
+              {/if}
+
+              <a
+                href="/account"
+                onclick={() => (drawerOpen = false)}
+                class="flex flex-col items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-accent"
+              >
+                <UserIcon class="h-5 w-5 text-primary" />
+                <span class="text-xs font-medium">Account</span>
+              </a>
+              <a
+                href="/cart"
+                onclick={() => (drawerOpen = false)}
+                class="flex flex-col items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-accent"
+              >
+                <ShoppingCart class="h-5 w-5 text-primary" />
+                <span class="text-xs font-medium">Cart</span>
+              </a>
+              <a
+                href="/orders"
+                onclick={() => (drawerOpen = false)}
+                class="flex flex-col items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-accent"
+              >
+                <History class="h-5 w-5 text-primary" />
+                <span class="text-xs font-medium">Orders</span>
+              </a>
+              <button
+                onclick={showCookiePreferences}
+                class="flex flex-col items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-accent"
+              >
+                <Cookie class="h-5 w-5 text-primary" />
+                <span class="text-xs font-medium">Cookies</span>
+              </button>
+            </div>
           </div>
-          <Drawer.Footer class="px-0 pb-0 pt-4">
-            <Button variant="outline" onclick={() => (drawerOpen = false)}
-              >Close</Button
+          <Drawer.Footer class="px-0 pb-0 pt-4 shrink-0 border-t border-border">
+            <Button
+              variant="outline"
+              class="w-full"
+              onclick={() => (drawerOpen = false)}>Close</Button
             >
           </Drawer.Footer>
         </div>
@@ -168,3 +210,43 @@
     </Drawer.Root>
   </div>
 </div>
+
+<!-- Search Drawer -->
+<Drawer.Root bind:open={searchDrawerOpen}>
+  <Drawer.Content>
+    <div class="mx-auto w-full max-w-sm px-6 py-8">
+      <Drawer.Header class="px-0 pt-0">
+        <div class="flex items-center gap-3 mb-2">
+          <div
+            class="h-10 w-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary"
+          >
+            <Search class="h-5 w-5" />
+          </div>
+          <Drawer.Title class="text-xl font-bold">Search Products</Drawer.Title>
+        </div>
+        <Drawer.Description>
+          Find exactly what you're looking for
+        </Drawer.Description>
+      </Drawer.Header>
+      <form onsubmit={handleSearch} class="flex flex-col gap-4 mt-6">
+        <div class="relative">
+          <Search
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            placeholder="Search for products..."
+            bind:value={searchQuery}
+            class="pl-10"
+          />
+        </div>
+        <Button type="submit">Find Products</Button>
+      </form>
+      <Drawer.Footer class="px-0 pb-0 pt-6">
+        <Button variant="outline" onclick={() => (searchDrawerOpen = false)}
+          >Cancel</Button
+        >
+      </Drawer.Footer>
+    </div>
+  </Drawer.Content>
+</Drawer.Root>

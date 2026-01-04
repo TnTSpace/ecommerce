@@ -3,11 +3,26 @@
 	import { Toaster } from "svelte-sonner";
 	import { ModeWatcher } from "mode-watcher";
 	import { SiteMeta } from "$lib/constants/index";
+	import CookieConsentBtn from "$lib/components/widgets/CookieConsentBtn.svelte";
+	import WhatsAppFAB from "$lib/components/widgets/WhatsAppFAB.svelte";
 
 	let { children } = $props();
 </script>
 
 <svelte:head>
+	<!-- Google tag (gtag.js) -->
+	<script
+		async
+		src="https://www.googletagmanager.com/gtag/js?id=G-34QJQLP35Z"
+	></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() {
+			dataLayer.push(arguments);
+		}
+		gtag("js", new Date());
+		gtag("config", "G-34QJQLP35Z");
+	</script>
 	<!-- Primary Meta Tags -->
 	<title>{SiteMeta.title}</title>
 	<meta name="title" content={SiteMeta.title} />
@@ -32,3 +47,7 @@
 <Toaster richColors position="top-center" />
 <ModeWatcher disableTransitions={true} />
 {@render children?.()}
+
+<!-- Global Widgets -->
+<WhatsAppFAB />
+<CookieConsentBtn />

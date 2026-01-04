@@ -11,6 +11,7 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import { Trash2, Star, Truck } from "@lucide/svelte";
   import { cn } from "$lib/utils.js";
+  import { untrack } from "svelte";
 
   interface Props {
     class?: string;
@@ -48,19 +49,28 @@
   // Local state for price range to avoid immediate reactive updates
   let localPriceRange = $state([...priceRange]);
 
-  // Sync local price range when the prop changes (e.g. on clear)
+  // Sync local price range when the prop changes externally (e.g. on clear)
+  // Use untrack on localPriceRange to prevent this effect from running when user drags slider
   $effect(() => {
-    if (
-      localPriceRange[0] !== priceRange[0] ||
-      localPriceRange[1] !== priceRange[1]
-    ) {
-      localPriceRange = [...priceRange];
-    }
+    const propMin = priceRange[0];
+    const propMax = priceRange[1];
+
+    untrack(() => {
+      if (localPriceRange[0] !== propMin || localPriceRange[1] !== propMax) {
+        localPriceRange = [propMin, propMax];
+      }
+    });
   });
 
   const applyPriceFilter = () => {
     priceRange = [...localPriceRange];
   };
+
+  // Show apply button when local differs from prop
+  const showApplyButton = $derived(
+    localPriceRange[0] !== priceRange[0] ||
+      localPriceRange[1] !== priceRange[1],
+  );
 
   const ratingOptions = [
     { value: "0-5", label: "All products", stars: 0 },
@@ -142,16 +152,6 @@
         class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
         >Price Range</Label
       >
-      {#if localPriceRange[0] !== priceRange[0] || localPriceRange[1] !== priceRange[1]}
-        <Button
-          variant="link"
-          size="sm"
-          class="h-auto p-0 text-[10px] font-bold uppercase text-primary animate-in fade-in slide-in-from-right-2"
-          onclick={applyPriceFilter}
-        >
-          Apply
-        </Button>
-      {/if}
     </div>
     <div class="px-2">
       <Slider
@@ -187,6 +187,15 @@
         />
       </div>
     </div>
+    {#if showApplyButton}
+      <Button
+        size="sm"
+        class="w-full h-9 font-bold text-xs uppercase tracking-wider bg-primary text-primary-foreground shadow-md animate-in fade-in slide-in-from-bottom-2"
+        onclick={applyPriceFilter}
+      >
+        Apply Price Filter
+      </Button>
+    {/if}
   </div>
 
   <!-- Rating -->

@@ -19,9 +19,11 @@
   } from "@lucide/svelte";
 
   let { data }: PageProps = $props();
-  const { order, status, error } = data;
 
-  const isSuccess = status === "success";
+  const order = $derived(data.order);
+  const status = $derived(data.status);
+  const error = $derived(data.error);
+  const isSuccess = $derived(status === "success");
 </script>
 
 <div class="center mx-auto max-w-3xl px-4 py-12">

@@ -172,7 +172,7 @@
 </svelte:head>
 
 {#if product}
-  <div class="center mx-auto max-w-7xl px-4 py-6">
+  <div class="center mx-auto max-w-7xl py-6">
     <!-- Breadcrumb -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
       <a href="/" class="hover:text-foreground">Home</a>

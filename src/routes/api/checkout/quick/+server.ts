@@ -7,10 +7,21 @@ import { ProductCRUD } from '$lib/db/product';
 
 export const POST: RequestHandler = async ({ request, url }) => {
   const session = await auth.api.getSession({ headers: request.headers });
-  const { productId, email, fullName, phone, zoneId, city, shippingCost } = await request.json();
+  const { productId, email, fullName, phone, deliveryMethod, zoneId, city, shippingCost, pickupDetails } = await request.json();
 
-  if (!productId || !email || !fullName || !phone || !zoneId || !city) {
-    return json({ success: false, error: 'Missing required fields' }, { status: 400 });
+  // Validate based on delivery method
+  if (!productId || !email || !fullName || !phone) {
+    return json({ success: false, error: 'Missing required contact fields' }, { status: 400 });
+  }
+
+  const isPickup = deliveryMethod === 'pickup';
+
+  if (!isPickup && (!zoneId || !city)) {
+    return json({ success: false, error: 'Missing delivery zone or city' }, { status: 400 });
+  }
+
+  if (isPickup && !pickupDetails?.trim()) {
+    return json({ success: false, error: 'Please provide pickup details' }, { status: 400 });
   }
 
   // Get product details
@@ -23,16 +34,16 @@ export const POST: RequestHandler = async ({ request, url }) => {
   // Create shipping address object
   const shippingAddress = {
     fullName,
-    addressLine1: `Quick Purchase - ${city}`,
-    city,
-    state: zoneId, // Using zone name as state for now
+    addressLine1: isPickup ? 'Pickup' : `Quick Purchase - ${city}`,
+    city: isPickup ? 'Lagos' : city,
+    state: isPickup ? 'Lagos' : zoneId, // Using zone name as state for now
     country: 'NG',
     phone
   };
 
-  // Calculate total
+  // Calculate total (shipping is 0 for pickup)
   const subtotal = parseFloat(product.basePrice);
-  const totalShipping = parseFloat(shippingCost) || 0;
+  const totalShipping = isPickup ? 0 : (parseFloat(shippingCost) || 0);
   const total = subtotal + totalShipping;
 
   // Create order item
@@ -58,6 +69,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
       total: total.toFixed(2),
       shippingAddress: shippingAddress as any,
       billingAddress: shippingAddress as any,
+      deliveryMethod: isPickup ? 'pickup' : 'shipping',
+      pickupDetails: isPickup ? pickupDetails : null,
     },
     orderItems as any
   );

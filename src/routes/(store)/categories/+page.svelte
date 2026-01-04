@@ -5,7 +5,7 @@
   import { Store, ChevronRight, Sparkles } from "@lucide/svelte";
 
   let { data }: PageProps = $props();
-  const categories = data.categories || [];
+  const categories = $state(data.categories || []);
 </script>
 
 <div class="center mx-auto max-w-7xl px-4 py-8">

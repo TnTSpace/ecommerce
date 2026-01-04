@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button/index.js";
+  import { Input } from "$lib/components/ui/input/index.js";
   import {
     ArrowRight,
     CheckCircle,
@@ -8,9 +9,20 @@
     Truck,
     Store,
     Sparkles,
+    Search,
   } from "@lucide/svelte";
+  import { goto } from "$app/navigation";
 
   const { categories = [] } = $props();
+
+  let searchQuery = $state("");
+
+  const handleSearch = (e: SubmitEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      goto(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 </script>
 
 <section
@@ -35,7 +47,9 @@
   <div
     class="absolute inset-0 z-10 mx-auto flex flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8"
   >
-    <div class="flex flex-col gap-4 md:gap-6 animate-in fade-in zoom-in duration-700">
+    <div
+      class="flex flex-col gap-4 md:gap-6 animate-in fade-in zoom-in duration-700"
+    >
       <!-- Trust badge -->
       <div
         class="inline-flex items-center gap-2 self-center rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold text-white shadow-lg backdrop-blur-md"
@@ -64,6 +78,25 @@
         Discover our curated collection of luxury baby essentials and high-end
         health & beauty products designed for ultimate wellness and comfort.
       </p>
+
+      <!-- Search Widget (hidden on mobile, uses bottom nav instead) -->
+      <form
+        onsubmit={handleSearch}
+        class="hidden sm:flex w-full max-w-xl mx-auto items-center gap-2 pt-4"
+      >
+        <div class="relative flex-1">
+          <Search
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            placeholder="Search for baby essentials, beauty products..."
+            bind:value={searchQuery}
+            class="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 backdrop-blur-sm"
+          />
+        </div>
+        <Button type="submit">Search</Button>
+      </form>
 
       <!-- CTA buttons -->
       <div class="flex flex-col justify-center gap-4 sm:flex-row pt-2">

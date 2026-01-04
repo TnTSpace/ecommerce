@@ -64,6 +64,13 @@
       "when": 1767356861609,
       "tag": "0008_simple_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1767527644216,
+      "tag": "0009_normal_boom_boom",
+      "breakpoints": true
     }
   ]
 }

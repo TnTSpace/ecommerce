@@ -213,6 +213,8 @@ export const order = pgTable("order", {
   deliveredAt: timestamp("delivered_at"),
   customerNotes: text("customer_notes"),
   adminNotes: text("admin_notes"),
+  deliveryMethod: text("delivery_method").$type<"shipping" | "pickup">().notNull().default("shipping"),
+  pickupDetails: text("pickup_details"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

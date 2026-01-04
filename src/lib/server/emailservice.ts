@@ -39,27 +39,17 @@ export const emailService = {
       <html>
       <head>
         <meta charset="utf-8">
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #334155; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
-          .header { background: #f97316; padding: 40px 20px; text-align: center; }
-          .header h1 { color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; }
-          .content { padding: 40px 30px; background: #ffffff; }
-          .footer { background: #f8fafc; padding: 30px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
-          .button { display: inline-block; padding: 12px 24px; background: #f97316; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: bold; margin-top: 20px; }
-          .card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-top: 20px; }
-        </style>
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>${SITE_NAME}</h1>
+      <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #374151; margin: 0; padding: 0; background-color: #f9fafb;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background-color: #1f2937; padding: 40px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">${SITE_NAME}</h1>
           </div>
-          <div class="content">
-            <h2 style="color: #0f172a; font-size: 22px; margin-top: 0;">${title}</h2>
+          <div style="padding: 40px 30px; background-color: #ffffff;">
+            <h2 style="color: #111827; font-size: 22px; margin-top: 0;">${title}</h2>
             ${content}
           </div>
-          <div class="footer">
+          <div style="background-color: #f3f4f6; padding: 30px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb;">
             <p><strong>${SITE_NAME}</strong></p>
             <p>${COMPANY_INFO.address}</p>
             <p>${COMPANY_INFO.phone} | ${COMPANY_INFO.email}</p>
@@ -75,7 +65,7 @@ export const emailService = {
     const adminHtml = this.generateTemplate(
       "New Contact Inquiry",
       `
-      <div class="card">
+      <div style="border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; margin-top: 20px; background-color: #f9fafb;">
         <p><strong>From:</strong> ${name} (${email})</p>
         <p><strong>Subject:</strong> ${subject}</p>
         <p><strong>Message:</strong></p>
@@ -90,7 +80,7 @@ export const emailService = {
       <p>Hello ${name},</p>
       <p>Thank you for reaching out to us. We have received your message regarding <strong>"${subject}"</strong> and our team will get back to you within 24 hours.</p>
       <p>Here is a copy of your message:</p>
-      <div class="card italic">
+      <div style="border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; margin-top: 20px; background-color: #f9fafb; font-style: italic;">
         "${message}"
       </div>
       <p>Best regards,<br/>The ${SITE_NAME} Team</p>
@@ -112,31 +102,85 @@ export const emailService = {
     });
   },
 
-  async sendTransactionNotification(userEmail: string, orderDetails: any) {
-    // Basic placeholder for transaction email - will be refined when order data structure is confirmed
-    const html = this.generateTemplate(
+  async sendTransactionNotification(userEmail: string, orderDetails: {
+    id: string;
+    orderNumber: string;
+    total: string;
+    deliveryMethod?: 'shipping' | 'pickup';
+    pickupDetails?: string | null;
+    shippingAddress?: {
+      fullName: string;
+      addressLine1?: string;
+      city?: string;
+      state?: string;
+      phone: string;
+    };
+  }) {
+    const isPickup = orderDetails.deliveryMethod === 'pickup';
+
+    const deliverySection = isPickup
+      ? `
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 16px; margin-top: 20px; border: 1px solid #e5e7eb;">
+          <h4 style="color: #111827; margin: 0 0 8px 0;">📍 Pickup Order</h4>
+          <p style="margin: 0; color: #374151;"><strong>Pickup Details:</strong></p>
+          <p style="margin: 8px 0 0 0; color: #4b5563; white-space: pre-wrap;">${orderDetails.pickupDetails}</p>
+        </div>
+      `
+      : `
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 16px; margin-top: 20px; border: 1px solid #e5e7eb;">
+          <h4 style="color: #111827; margin: 0 0 8px 0;">🚚 Delivery Address</h4>
+          <p style="margin: 0; color: #4b5563;">
+            ${orderDetails.shippingAddress?.fullName}<br/>
+            ${orderDetails.shippingAddress?.addressLine1 || ''}<br/>
+            ${orderDetails.shippingAddress?.city || ''}, ${orderDetails.shippingAddress?.state || ''}<br/>
+            Phone: ${orderDetails.shippingAddress?.phone}
+          </p>
+        </div>
+      `;
+
+    const customerHtml = this.generateTemplate(
       "Your Order Confirmation",
       `
-      <p>Thank you for your purchase! Your order <strong>#${orderDetails.id}</strong> has been received and is being processed.</p>
-      <div class="card">
+      <p>Thank you for your purchase! Your order <strong>#${orderDetails.orderNumber}</strong> has been received and is being processed.</p>
+      <div style="border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; margin-top: 20px; background-color: #f9fafb;">
         <h3 style="margin-top: 0;">Order Summary</h3>
+        <p>Order Number: <strong>#${orderDetails.orderNumber}</strong></p>
         <p>Total Amount: <strong>${orderDetails.total}</strong></p>
-        <p>Status: <span style="color: #10b981; font-weight: bold;">Processing</span></p>
+        <p>Delivery Method: <strong>${isPickup ? '📍 Pickup' : '🚚 Shipping'}</strong></p>
+        <p>Status: <span style="color: #374151; font-weight: bold;">Processing</span></p>
       </div>
-      <a href="${SITE_URL}/dashboard" class="button">View Order Details</a>
+      ${deliverySection}
+      <a href="${SITE_URL}/orders" style="display: inline-block; padding: 12px 24px; background-color: #1f2937; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: bold; margin-top: 20px;">View Your Orders</a>
+      `
+    );
+
+    const adminHtml = this.generateTemplate(
+      "New Order Received",
+      `
+      <p>A new order has been placed on ${SITE_NAME}.</p>
+      <div style="border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; margin-top: 20px; background-color: #f9fafb;">
+        <h3 style="margin-top: 0;">Order Details</h3>
+        <p>Order Number: <strong>#${orderDetails.orderNumber}</strong></p>
+        <p>Customer: <strong>${userEmail}</strong></p>
+        <p>Total: <strong>${orderDetails.total}</strong></p>
+        <p>Delivery Method: <strong style="color: #374151;">${isPickup ? '📍 PICKUP' : '🚚 Shipping'}</strong></p>
+      </div>
+      ${deliverySection}
+      <a href="${SITE_URL}/admin/orders" style="display: inline-block; padding: 12px 24px; background-color: #1f2937; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: bold; margin-top: 20px;">View in Admin</a>
       `
     );
 
     await this.send({
       to: userEmail,
-      subject: `Order Confirmation #${orderDetails.id} - ${SITE_NAME}`,
-      html,
+      subject: `Order Confirmation #${orderDetails.orderNumber} - ${SITE_NAME}`,
+      html: customerHtml,
     });
 
     await this.send({
       to: COMPANY_INFO.adminEmail,
-      subject: `New Order Received #${orderDetails.id}`,
-      html: this.generateTemplate("New Transaction Alert", `<p>A new order has been placed on ${SITE_NAME}.</p><p>Customer: ${userEmail}</p><p>Total: ${orderDetails.total}</p>`),
+      subject: `${isPickup ? '[PICKUP] ' : ''}New Order #${orderDetails.orderNumber}`,
+      html: adminHtml,
     });
   }
 };
+

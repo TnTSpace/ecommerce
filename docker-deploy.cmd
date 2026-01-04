@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 REM Configuration
 set IMAGE_NAME=toolsntuts/ecommerce
-set VERSION=1.2.8
+set VERSION=1.3.1
 
 echo ============================================
 echo Building and Deploying Docker Image

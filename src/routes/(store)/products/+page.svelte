@@ -180,11 +180,12 @@
 
   // Reactively update URL when filters change
   $effect(() => {
-    // Track dependencies
+    // Track dependencies - access array elements explicitly for reactivity
     const s = sortBy;
     const cat = selectedCategory;
     const tag = selectedTag;
-    const p = priceRange;
+    const minP = priceRange[0];
+    const maxP = priceRange[1];
     const r = rating;
     const d = discountRange;
 
@@ -211,16 +212,35 @@
   };
 
   const handleCopy = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success("Catalog link copied", {
-      description: "Current selection has been copied to clipboard.",
+    const baseUrl = window.location.origin;
+    const productList = allProducts
+      .map((p) => `- ${p.name}: ${baseUrl}/products/${p.id}`)
+      .join("\n");
+
+    navigator.clipboard.writeText(productList);
+    toast.success("Product list copied", {
+      description: `${allProducts.length} products copied to clipboard.`,
     });
   };
 
   const handleDownload = () => {
-    toast.info("Preparing download...", {
-      description: "Generating catalog data export.",
+    const baseUrl = window.location.origin;
+    const productList = allProducts
+      .map((p) => `- ${p.name}: ${baseUrl}/products/${p.id}`)
+      .join("\n");
+
+    const blob = new Blob([productList], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "products.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success("Download started", {
+      description: `${allProducts.length} products exported to products.txt`,
     });
   };
 
@@ -249,7 +269,7 @@
         placeholder="Search products..."
         bind:value={searchQuery}
         class={cn(
-          "h-11 pl-10 bg-muted/30 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl text-sm font-medium transition-all",
+          "pl-10 bg-muted/30 border-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl text-sm transition-all",
           isMobileDialog && "h-14 text-base",
         )}
       />
@@ -257,8 +277,8 @@
     <Button
       type="submit"
       class={cn(
-        "h-11 px-6 rounded-xl font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-95",
-        isMobileDialog ? "w-full h-12 text-lg" : "hover:scale-[1.02]",
+        "font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-95",
+        isMobileDialog ? "w-full" : "hover:scale-[1.02]",
       )}
     >
       {isMobileDialog ? "Find Products" : "Search"}

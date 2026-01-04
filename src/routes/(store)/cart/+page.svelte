@@ -24,29 +24,14 @@
   } from "$lib/components/ui/card";
   import { Separator } from "$lib/components/ui/separator";
   import { Badge } from "$lib/components/ui/badge";
-  import JumiaLogo from "$lib/components/icons/JumiaLogo.svelte";
-  import SelectComponent from "$lib/components/ui/select/select-component.svelte";
-  import JumiaShippingSelection from "$lib/components/store/JumiaShippingSelection.svelte";
+  import { Textarea } from "$lib/components/ui/textarea";
   import CartItemSkeleton from "$lib/components/store/CartItemSkeleton.svelte";
   import { toast } from "svelte-sonner";
   import { cn } from "$lib/utils";
   import { fade, slide, fly } from "svelte/transition";
 
   let { data } = $props();
-  const zones = $derived(data.shippingZones || []);
-
-  let showShippingSelector = $state(false);
-  let selectedZoneId = $state("");
-  let selectedCity = $state("");
-  let selectedSize = $state<"small" | "medium" | "large">("small");
-  let shippingFee = $state(0);
-  let isCalculatingShipping = $state(false);
-
-  const selectedZone = $derived(
-    zones.find((z) => z.id.toString() === selectedZoneId),
-  );
-
-  const total = $derived(cart.total + shippingFee);
+  const total = $derived(cart.total);
 
   async function handleUpdateQuantity(itemId: string, qty: number) {
     if (qty < 1) return;
@@ -58,36 +43,6 @@
     toast.success("Item removed from cart");
   }
 
-  async function handleShippingSelect(selection: {
-    zoneId: string;
-    city: string;
-    size: "small" | "medium" | "large";
-  }) {
-    selectedZoneId = selection.zoneId;
-    selectedCity = selection.city;
-    selectedSize = selection.size;
-
-    isCalculatingShipping = true;
-    try {
-      const zoneName = zones.find(
-        (z) => z.id.toString() === selection.zoneId,
-      )?.zone;
-      const response = await fetch("/api/shipping/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zoneName, size: selection.size }),
-      });
-      const result = await response.json();
-      if (result.success) {
-        shippingFee = result.fee;
-        toast.success("Shipping fee updated");
-      }
-    } catch (e) {
-      toast.error("Failed to calculate shipping fee");
-    } finally {
-      isCalculatingShipping = false;
-    }
-  }
 
   const items = $derived(cart.items);
   const isInitialLoading = $derived(!cart.isReady);
@@ -303,109 +258,10 @@
 
         <!-- Summary & Shipping -->
         <div class="lg:col-span-4 space-y-6">
-          <!-- Shipping Selection -->
-          <Card
-            class="border-none shadow-sm bg-white/70 backdrop-blur-md dark:bg-white/5"
-          >
-            <CardHeader class="pb-4">
-              <div class="flex items-center gap-2">
-                <Truck class="h-5 w-5 text-primary" />
-                <CardTitle class="text-lg">Delivery Estimate</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              <Button
-                variant="outline"
-                class="w-full justify-between h-auto py-4 px-4 rounded-xl group"
-                onclick={() => (showShippingSelector = true)}
-              >
-                <div class="flex flex-col items-start gap-1">
-                  <div class="flex items-center gap-1">
-                    <JumiaLogo class="h-4" />
-                    <span
-                      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                      >Shipping Provider</span
-                    >
-                  </div>
-                  {#if selectedZoneId && selectedCity}
-                    <span class="text-sm font-bold text-foreground"
-                      >{selectedCity}, {selectedZone?.zone}</span
-                    >
-                    <span class="text-[10px] text-muted-foreground uppercase"
-                      >{selectedSize} Package</span
-                    >
-                  {:else}
-                    <span class="text-sm font-medium text-muted-foreground"
-                      >Select delivery location</span
-                    >
-                  {/if}
-                </div>
-                <ChevronRight
-                  class="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform"
-                />
-              </Button>
-
-              {#if selectedZone}
-                <div
-                  class="rounded-xl bg-primary/5 p-4 border border-primary/10"
-                  transition:slide
-                >
-                  <div class="mb-3 flex items-center justify-between">
-                    <div
-                      class="flex items-center gap-2 text-xs font-bold text-primary"
-                    >
-                      <CheckCircle2 class="h-4 w-4" />
-                      Verified Shipping
-                    </div>
-                    <Badge
-                      variant="outline"
-                      class="border-primary/20 text-primary bg-primary/10 rounded-lg"
-                      >Verified Rate</Badge
-                    >
-                  </div>
-                  <div class="space-y-2">
-                    <div
-                      class="flex items-center gap-2 text-sm text-muted-foreground"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-green-500"
-                      ></span>
-                      Delivery within 48 hours
-                    </div>
-                    <div
-                      class="flex items-center justify-between font-bold pt-2 border-t border-primary/10"
-                    >
-                      <span class="text-sm">Shipping Fee</span>
-                      <span class="text-primary">
-                        {#if isCalculatingShipping}
-                          <Loader2 class="h-4 w-4 animate-spin" />
-                        {:else}
-                          {formatPrice(shippingFee)}
-                        {/if}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              {:else}
-                <div
-                  class="flex items-start gap-3 rounded-xl bg-orange-50/50 p-4 border border-orange-200/50 dark:bg-orange-900/10 dark:border-orange-900/20"
-                >
-                  <AlertCircle
-                    class="h-5 w-5 text-orange-500 shrink-0 mt-0.5"
-                  />
-                  <p
-                    class="text-xs text-orange-700 dark:text-orange-400 leading-relaxed font-medium"
-                  >
-                    Please select a delivery zone to calculate shipping costs
-                    and see estimated delivery times.
-                  </p>
-                </div>
-              {/if}
-            </CardContent>
-          </Card>
 
           <!-- Order Summary -->
           <Card
-            class="border-none shadow-lg bg-white/90 dark:bg-slate-900/90 overflow-hidden rounded-xl"
+            class="border-none shadow-lg bg-white/90 dark:bg-slate-900/90 overflow-hidden rounded-xl py-0"
           >
             <div
               class="h-1.5 bg-gradient-to-r from-primary via-primary/80 to-primary/60"
@@ -448,36 +304,15 @@
                 <Separator class="opacity-50" />
 
                 <div class="space-y-2 pt-2">
-                  <div class="flex justify-between text-sm">
-                    <span class="text-muted-foreground">Total Items Value</span>
+                  <div class="flex justify-between text-base">
+                    <span class="text-muted-foreground">Subtotal</span>
                     <span class="font-bold text-foreground"
                       >{formatPrice(cart.total)}</span
                     >
                   </div>
-                  <div class="flex justify-between text-sm">
-                    <div class="flex flex-col">
-                      <span class="text-muted-foreground">Shipping Fee</span>
-                      {#if !selectedZone}
-                        <span
-                          class="text-[10px] text-destructive font-bold uppercase"
-                          >Required*</span
-                        >
-                      {/if}
-                    </div>
-                    <span
-                      class={selectedZone
-                        ? "font-bold text-primary"
-                        : "text-muted-foreground italic"}
-                    >
-                      {#if isCalculatingShipping}
-                        <Loader2 class="h-3 w-3 animate-spin" />
-                      {:else if selectedZone}
-                        {formatPrice(shippingFee)}
-                      {:else}
-                        Select Zone
-                      {/if}
-                    </span>
-                  </div>
+                  <p class="text-[10px] text-muted-foreground italic">
+                    Shipping will be calculated at the checkout page.
+                  </p>
                 </div>
 
                 <Separator />
@@ -504,10 +339,7 @@
                   <Button
                     class="w-full rounded-full font-bold shadow-xl shadow-primary/20 group relative overflow-hidden"
                     href="/checkout"
-                    disabled={isUpdating ||
-                      items.length === 0 ||
-                      isCalculatingShipping ||
-                      !selectedZoneId}
+                    disabled={isUpdating || items.length === 0}
                   >
                     <span
                       class="relative z-10 flex items-center justify-center gap-2"
@@ -593,12 +425,6 @@
   </div>
 </div>
 
-<JumiaShippingSelection
-  bind:open={showShippingSelector}
-  {zones}
-  onSelect={handleShippingSelect}
-  onClose={() => (showShippingSelector = false)}
-/>
 
 <style>
   /* Custom glassmorphism and animations */
