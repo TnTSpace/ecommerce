@@ -45,6 +45,23 @@
       discountRange !== "0-100",
   );
 
+  // Local state for price range to avoid immediate reactive updates
+  let localPriceRange = $state([...priceRange]);
+
+  // Sync local price range when the prop changes (e.g. on clear)
+  $effect(() => {
+    if (
+      localPriceRange[0] !== priceRange[0] ||
+      localPriceRange[1] !== priceRange[1]
+    ) {
+      localPriceRange = [...priceRange];
+    }
+  });
+
+  const applyPriceFilter = () => {
+    priceRange = [...localPriceRange];
+  };
+
   const ratingOptions = [
     { value: "0-5", label: "All products", stars: 0 },
     { value: "4-5", label: "4 stars & up", stars: 4 },
@@ -120,14 +137,26 @@
 
   <!-- Price Range -->
   <div class="flex flex-col gap-5">
-    <Label
-      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-      >Price Range</Label
-    >
+    <div class="flex items-center justify-between">
+      <Label
+        class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+        >Price Range</Label
+      >
+      {#if localPriceRange[0] !== priceRange[0] || localPriceRange[1] !== priceRange[1]}
+        <Button
+          variant="link"
+          size="sm"
+          class="h-auto p-0 text-[10px] font-bold uppercase text-primary animate-in fade-in slide-in-from-right-2"
+          onclick={applyPriceFilter}
+        >
+          Apply
+        </Button>
+      {/if}
+    </div>
     <div class="px-2">
       <Slider
         type="multiple"
-        bind:value={priceRange}
+        bind:value={localPriceRange}
         max={100000}
         step={500}
         class="py-4"
@@ -141,8 +170,8 @@
         >
         <Input
           type="number"
-          bind:value={priceRange[0]}
-          class="pl-7 text-xs font-bold bg-muted/30 border-none"
+          bind:value={localPriceRange[0]}
+          class="pl-7 text-xs font-bold bg-muted/30 border-none h-9"
         />
       </div>
       <div class="h-px w-2 bg-border"></div>
@@ -153,8 +182,8 @@
         >
         <Input
           type="number"
-          bind:value={priceRange[1]}
-          class="pl-7 text-xs font-bold bg-muted/30 border-none"
+          bind:value={localPriceRange[1]}
+          class="pl-7 text-xs font-bold bg-muted/30 border-none h-9"
         />
       </div>
     </div>

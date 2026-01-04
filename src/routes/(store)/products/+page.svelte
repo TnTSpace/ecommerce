@@ -37,7 +37,7 @@
   } from "$lib/components/store/index.js";
   import { cn } from "$lib/utils.js";
   import { navigating } from "$app/stores";
-  import { untrack, onMount } from "svelte";
+  import { untrack } from "svelte";
   import SelectComponent from "$lib/components/ui/select/select-component.svelte";
   import { MAX_ITEMS_PER_PAGE } from "$lib/constants/index";
   import { Loader2 } from "@lucide/svelte";
@@ -137,7 +137,9 @@
     }
   };
 
-  onMount(() => {
+  $effect(() => {
+    if (!observerTarget) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -147,10 +149,10 @@
       { threshold: 0.1 },
     );
 
-    if (observerTarget) observer.observe(observerTarget);
+    observer.observe(observerTarget);
 
     return () => {
-      if (observerTarget) observer.unobserve(observerTarget);
+      observer.disconnect();
     };
   });
 

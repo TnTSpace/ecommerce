@@ -14,17 +14,17 @@
 </script>
 
 <section
-  class="relative aspect-[340/640] w-full overflow-hidden sm:aspect-[340/488] md:aspect-[768/472] lg:aspect-[1024/520] xl:aspect-[1440/600] rounded-xl shadow-lg"
+  class="relative aspect-[340/640] w-full overflow-hidden sm:aspect-[340/488] md:aspect-[768/472] lg:aspect-[1024/520] xl:aspect-[1440/600] shadow-lg"
 >
   <!-- Background image -->
   <div class="absolute inset-0">
     <img
-      src="/luxury_baby_beauty_hero_comprehensive_1767513675303.webp"
+      src="/background.webp"
       alt="Lania Stores Baby and Beauty Section"
       class="h-full w-full object-cover"
     />
     <!-- Thematic overlays -->
-    <div class="absolute inset-0 bg-black/50 dark:bg-background/80"></div>
+    <div class="absolute inset-0 bg-black/70 dark:bg-background/80"></div>
     <div class="absolute inset-0 bg-grid-pattern opacity-10"></div>
     <div
       class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-background/20"

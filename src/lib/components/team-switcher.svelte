@@ -1,7 +1,9 @@
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
   import { useSidebar } from "$lib/components/ui/sidebar/index.js";
+    import { cn } from "$lib/utils";
   import { Home } from "@lucide/svelte";
+    import { buttonVariants } from "./ui/button";
 
   let { teams }: { teams: { name: string; logo: any; plan: string }[] } =
     $props();
@@ -18,9 +20,9 @@
       {#snippet child({ props })}
         <a href="/" {...props}>
           <div
-            class="flex aspect-square size-8 items-center justify-center rounded-lg bg-white text-sidebar-primary-foreground"
+            class={buttonVariants({ variant: "ghost", size: "icon" })}
           >
-            <activeTeam.logo class="size-4" type="normal" />
+            <activeTeam.logo class="size-8" type="normal" />
           </div>
           <div class="grid flex-1 text-left text-sm leading-tight">
             <span class="truncate font-medium">{activeTeam.name}</span>

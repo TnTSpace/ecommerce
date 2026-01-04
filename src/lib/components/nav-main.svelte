@@ -37,7 +37,9 @@
         {#if !item.roles || item.roles.includes(user.role as Role)}
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
-              href={item.url}
+              onclick={() => {
+                window.location.href = item.url;
+              }}
               tooltipContent={item.title}
               isActive={item.isActive}
               class={cn(

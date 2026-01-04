@@ -41,7 +41,7 @@
     {#each categories as category}
       <a href="/products?category={category.id}" class="group block h-full">
         <Card
-          class="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/30 rounded-lg bg-card border-border"
+          class="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/30 rounded-lg bg-card border-border py-0"
         >
           <div class="relative aspect-[4/3] overflow-hidden bg-muted">
             <img
