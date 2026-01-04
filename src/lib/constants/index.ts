@@ -1,6 +1,6 @@
 import Logo from "$lib/components/icons/logo.svelte";
 import type { iFetchMeta } from "$lib/interface";
-import { FileText, LayoutDashboard, User, Users, Home, Book, Music, Heart, Globe, Lightbulb, Cross, Settings, PackageOpen, Star, Boxes, Image, Tag, Ruler, LineChart, Package, Store, Phone } from "@lucide/svelte";
+import { FileText, LayoutDashboard, User, Users, Home, Book, Music, Heart, Globe, Lightbulb, Cross, Settings, PackageOpen, Star, Boxes, Image, Tag, Ruler, LineChart, Package, Store, Phone, ShoppingBag } from "@lucide/svelte";
 
 export enum Role {
   ADMIN = 'admin',
@@ -10,15 +10,26 @@ export enum Role {
 
 export enum Fields { USER = 'user' }
 
-export const MAX_ITEMS_PER_PAGE = 12;
+export const MAX_ITEMS_PER_PAGE = 20;
+
+export const COMPANY_INFO = {
+  address: "Block A, 4th Avenue Opeki Estate, Abesan, Ipaja Lagos",
+  phone: "+2347030102979",
+  email: "laniastores@gmail.com",
+  adminEmail: "laniastores@gmail.com"
+};
+
+export const SITE_NAME = "Lania Stores";
+export const SITE_URL = "https://laniastores.toolsntuts.com";
+
 
 export enum Constants {
-  BRANDNAME = 'ecommerce',
+  BRANDNAME = 'Lania Stores',
   CREDENTIAL = 'credential',
   GOOGLE = 'google',
   AFTERAUTH = '/dashboard',
-  SUPPORTEMAIL = 'support@ecommerce.com',
-  BRANDWEBSITE = 'https://ecommerce.com',
+  SUPPORTEMAIL = 'laniastores@gmail.com',
+  BRANDWEBSITE = 'https://laniastores.toolsntuts.com',
   TAGLINE = 'Your trusted retail',
 }
 
@@ -26,19 +37,19 @@ export type FileType = 'audio' | 'video' | 'file' | 'image';
 
 // Site Meta for SEO/OG tags
 export const SiteMeta = {
-  title: 'ecommerce',
-  description: 'Welcome to ecommerce - Your trusted platform',
-  keywords: ['ecommerce', 'platform', 'app'],
-  ogimage: '/screenshot-wide.webp',
-  link: 'https://ecommerce.com',
+  title: SITE_NAME,
+  description: `Welcome to ${SITE_NAME} - Your trusted platform`,
+  keywords: ['lania stores','ecommerce', 'platform', 'app', SITE_NAME],
+  ogimage: 'https://laniastores.toolsntuts.com/screenshot-wide.webp',
+  link: SITE_URL,
 };
 
 // Homepage configurable content
 export const HomepageContent = {
   hero: {
-    subtitle: 'ecommerce',
-    title: 'Build Something Amazing',
-    description: 'A modern platform designed to help you achieve your goals with powerful tools and seamless experiences.',
+    subtitle: 'Lania Stores',
+    title: 'Your Trusted Retail',
+    description: 'From tiny toes to your beauty needs, we have it',
     primaryCta: { text: 'Get Started', href: '/login?redirectTo=/dashboard' },
     secondaryCta: { text: 'Learn More', href: '#features' },
     loggedInCta: { text: 'Dashboard', href: '/dashboard' },
@@ -97,7 +108,7 @@ export const getNavigation = (reference: string) => {
       {
         name: "Homepage",
         logo: Logo,
-        plan: "ecommerce",
+        plan: "lania stores",
         url: "/"
       },
     ],
@@ -129,6 +140,13 @@ export const getNavigation = (reference: string) => {
         roles: profileRoles,
         icon: User,
         isActive: reference === "/profile",
+      },
+      {
+        title: "My Orders",
+        url: "/orders",
+        roles: dashboardRoles,
+        icon: ShoppingBag,
+        isActive: reference === "/orders",
       },
     ],
     admin: [

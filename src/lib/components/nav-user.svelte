@@ -11,8 +11,7 @@
   import LogOutIcon from "@lucide/svelte/icons/log-out";
   import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
   import { buttonVariants } from "$lib/components/ui/button";
-  import { Role } from "$lib/constants";
-  import { getNavigation } from "$lib/constants";
+  import { Role, getNavigation } from "$lib/constants/index";
 
   let { user }: { user: User } = $props();
   const sidebar = useSidebar();

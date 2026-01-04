@@ -1,7 +1,7 @@
 import { auth } from '$lib/auth';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
-import { Role } from '$lib/constants';
+import { Role } from '$lib/constants/index';
 
 export const load = (async ({ request, parent }) => {
   const { session, user } = await parent();

@@ -53,10 +53,4 @@
       {/each}
     </div>
   </div>
-
-  <!-- Express Toggle Skeleton -->
-  <div class="flex flex-col gap-4">
-    <Skeleton class="h-4 w-32" />
-    <Skeleton class="h-12 w-full rounded-xl" />
-  </div>
 </aside>

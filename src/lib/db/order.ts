@@ -1,10 +1,11 @@
 import { BaseCRUD, eq, and, desc, sql, type CRUDResult, type CRUDListResult } from "./crud";
-import { order, orderItem, product, productSize, type Order, type NewOrder, type OrderItem, type NewOrderItem } from "./schema";
+import { order, orderItem, product, productSize, type Order, type NewOrder, type OrderItem, type NewOrderItem, type User } from "./schema";
 import { db } from "./drizzle";
 import { generateOrderNumber } from "$lib/fxns";
 
 interface OrderWithItems extends Order {
   items?: OrderItem[];
+  user?: User | null;
 }
 
 interface OrderFilters {
@@ -19,6 +20,30 @@ interface OrderFilters {
 class OrderCRUDClass extends BaseCRUD<typeof order, Order, NewOrder> {
   constructor() {
     super(order);
+  }
+
+  /**
+   * Get order by ID with items and user
+   */
+  async getById(id: string): Promise<CRUDResult<OrderWithItems>> {
+    try {
+      const result = await db.query.order.findFirst({
+        where: eq(order.id, id),
+        with: {
+          items: true,
+          user: true,
+        }
+      });
+
+      if (!result) {
+        return { success: false, error: "Order not found" };
+      }
+
+      return { success: true, data: result as OrderWithItems };
+    } catch (error) {
+      console.error(`[OrderCRUD] GetById error:`, error);
+      return { success: false, error: error instanceof Error ? error.message : "Failed to get order" };
+    }
   }
 
   /**

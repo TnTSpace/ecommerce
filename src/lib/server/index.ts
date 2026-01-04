@@ -1,4 +1,4 @@
-import { adminRoles, Fields, Role } from "$lib/constants";
+import { adminRoles, Fields, Role } from "$lib/constants/index";
 import type { iFetchMeta } from "$lib/interface";
 import { getUsersBySearchFilter } from "$lib/db/user";
 import { json } from "@sveltejs/kit";

@@ -355,7 +355,7 @@
                       class="flex items-center gap-2 text-xs font-bold text-primary"
                     >
                       <CheckCircle2 class="h-4 w-4" />
-                      Jumia Express
+                      Verified Shipping
                     </div>
                     <Badge
                       variant="outline"
@@ -413,103 +413,148 @@
             <CardHeader>
               <CardTitle class="text-xl">Order Summary</CardTitle>
             </CardHeader>
-            <CardContent class="space-y-4">
-              <div class="space-y-2">
-                <div class="flex justify-between text-sm">
-                  <span class="text-muted-foreground">Subtotal</span>
-                  <span class="font-medium text-foreground"
-                    >{formatPrice(cart.total)}</span
-                  >
-                </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-muted-foreground">Shipping</span>
-                  <span
-                    class={selectedZone
-                      ? "font-medium text-foreground"
-                      : "text-muted-foreground italic"}
-                  >
-                    {#if isCalculatingShipping}
-                      <Loader2 class="h-3 w-3 animate-spin" />
-                    {:else if selectedZone}
-                      {formatPrice(shippingFee)}
-                    {:else}
-                      Calculated at checkout
-                    {/if}
-                  </span>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div class="flex items-end justify-between pt-2">
-                <div class="space-y-1">
+            <CardContent class="p-0">
+              <div class="px-6 pt-4 space-y-4">
+                <!-- Itemized Breakdown -->
+                <div class="space-y-3 pb-2">
                   <p
                     class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Total Amount
+                    Detailed Breakdown
                   </p>
-                  <p class="text-3xl font-bold text-foreground">
-                    {formatPrice(total)}
-                  </p>
+                  {#each items as item}
+                    <div class="flex justify-between items-start gap-4">
+                      <div class="flex-1 min-w-0">
+                        <p
+                          class="text-xs font-medium text-foreground line-clamp-1"
+                        >
+                          {item.product?.name}
+                        </p>
+                        <p class="text-[10px] text-muted-foreground">
+                          {item.quantity} × {formatPrice(
+                            parseFloat(item.priceAtAdd),
+                          )}
+                        </p>
+                      </div>
+                      <span class="text-xs font-bold text-foreground shrink-0">
+                        {formatPrice(
+                          parseFloat(item.priceAtAdd) * item.quantity,
+                        )}
+                      </span>
+                    </div>
+                  {/each}
                 </div>
-                <Badge
-                  variant="outline"
-                  class="mb-1 border-slate-200 dark:border-slate-800 rounded-lg"
-                  >Inc. VAT</Badge
-                >
-              </div>
 
-              <div class="pt-4 space-y-3">
-                <Button
-                  class="w-full rounded-full font-bold shadow-xl shadow-primary/20 group relative overflow-hidden"
-                  href="/checkout"
-                  disabled={isUpdating ||
-                    items.length === 0 ||
-                    isCalculatingShipping}
-                >
-                  <span
-                    class="relative z-10 flex items-center justify-center gap-2"
-                  >
-                    Checkout Now
-                    <ArrowRight
-                      class="h-5 w-5 transition-transform group-hover:translate-x-1"
-                    />
-                  </span>
-                </Button>
+                <Separator class="opacity-50" />
 
-                <div class="flex items-center justify-center gap-4 py-2">
-                  <div
-                    class="flex items-center gap-1.5 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-help"
-                  >
-                    <ShieldCheck class="h-4 w-4" />
-                    <span class="text-[10px] font-bold uppercase tracking-wider"
-                      >Secure Payment</span
+                <div class="space-y-2 pt-2">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-muted-foreground">Total Items Value</span>
+                    <span class="font-bold text-foreground"
+                      >{formatPrice(cart.total)}</span
                     >
                   </div>
-                  <div
-                    class="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"
-                  ></div>
-                  <div
-                    class="flex items-center gap-1.5 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-help"
-                  >
-                    <Truck class="h-4 w-4" />
-                    <span class="text-[10px] font-bold uppercase tracking-wider"
-                      >Fast Delivery</span
+                  <div class="flex justify-between text-sm">
+                    <div class="flex flex-col">
+                      <span class="text-muted-foreground">Shipping Fee</span>
+                      {#if !selectedZone}
+                        <span
+                          class="text-[10px] text-destructive font-bold uppercase"
+                          >Required*</span
+                        >
+                      {/if}
+                    </div>
+                    <span
+                      class={selectedZone
+                        ? "font-bold text-primary"
+                        : "text-muted-foreground italic"}
                     >
+                      {#if isCalculatingShipping}
+                        <Loader2 class="h-3 w-3 animate-spin" />
+                      {:else if selectedZone}
+                        {formatPrice(shippingFee)}
+                      {:else}
+                        Select Zone
+                      {/if}
+                    </span>
                   </div>
                 </div>
 
-                <div
-                  class="rounded-xl border border-dashed border-slate-200 p-3 text-center dark:border-slate-800"
-                >
-                  <p class="text-[10px] text-muted-foreground italic">
-                    Secure checkout powered by <span
-                      class="font-bold text-foreground">Paystack</span
+                <Separator />
+
+                <div class="flex items-end justify-between pt-2 pb-6">
+                  <div class="space-y-1">
+                    <p
+                      class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                     >
-                  </p>
+                      Total Amount
+                    </p>
+                    <p class="text-3xl font-bold text-foreground">
+                      {formatPrice(total)}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    class="mb-1 border-slate-200 dark:border-slate-800 rounded-lg"
+                    >Inc. VAT</Badge
+                  >
                 </div>
-              </div>
-            </CardContent>
+
+                <div class="pt-4 space-y-3">
+                  <Button
+                    class="w-full rounded-full font-bold shadow-xl shadow-primary/20 group relative overflow-hidden"
+                    href="/checkout"
+                    disabled={isUpdating ||
+                      items.length === 0 ||
+                      isCalculatingShipping ||
+                      !selectedZoneId}
+                  >
+                    <span
+                      class="relative z-10 flex items-center justify-center gap-2"
+                    >
+                      Checkout Now
+                      <ArrowRight
+                        class="h-5 w-5 transition-transform group-hover:translate-x-1"
+                      />
+                    </span>
+                  </Button>
+
+                  <div class="flex items-center justify-center gap-4 py-2">
+                    <div
+                      class="flex items-center gap-1.5 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-help"
+                    >
+                      <ShieldCheck class="h-4 w-4" />
+                      <span
+                        class="text-[10px] font-bold uppercase tracking-wider"
+                        >Secure Payment</span
+                      >
+                    </div>
+                    <div
+                      class="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"
+                    ></div>
+                    <div
+                      class="flex items-center gap-1.5 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-help"
+                    >
+                      <Truck class="h-4 w-4" />
+                      <span
+                        class="text-[10px] font-bold uppercase tracking-wider"
+                        >Fast Delivery</span
+                      >
+                    </div>
+                  </div>
+
+                  <div
+                    class="rounded-xl border border-dashed border-slate-200 p-3 text-center dark:border-slate-800"
+                  >
+                    <p class="text-[10px] text-muted-foreground italic">
+                      Secure checkout powered by <span
+                        class="font-bold text-foreground">Paystack</span
+                      >
+                    </p>
+                  </div>
+                </div>
+              </div></CardContent
+            >
           </Card>
         </div>
       </div>

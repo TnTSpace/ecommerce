@@ -8,9 +8,9 @@
   ],
   "scope": "/",
   "start_url": "/",
-  "name": "ecommerce",
-  "short_name": "ecommerce",
-  "description": "ecommerce - A SvelteKit application",
+  "name": "Lania Stores",
+  "short_name": "Lania Stores",
+  "description": "Your trusted retail",
   "icons": [
     {
       "src": "/pwa-192x192.png",

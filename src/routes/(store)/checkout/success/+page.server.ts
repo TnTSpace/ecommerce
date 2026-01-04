@@ -2,6 +2,8 @@ import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { verifyTransaction } from '$lib/server/paystack.server';
 import { OrderCRUD } from '$lib/db/order';
+import { emailService } from '$lib/server/emailservice';
+import { formatPrice } from '$lib/fxns';
 
 export const load = (async ({ url }) => {
   const orderId = url.searchParams.get('orderId');
@@ -21,6 +23,17 @@ export const load = (async ({ url }) => {
     await OrderCRUD.updateStatus(orderId, 'processing');
 
     const orderResult = await OrderCRUD.getById(orderId);
+
+    if (orderResult.success && orderResult.data) {
+      // Send email notifications
+      await emailService.sendTransactionNotification(
+        orderResult.data.user?.email || verification.data.customer.email,
+        {
+          id: orderId,
+          total: formatPrice(orderResult.data.total)
+        }
+      );
+    }
 
     return {
       status: 'success',

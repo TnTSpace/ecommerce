@@ -1,8 +1,9 @@
+import type { PageServerLoad } from './$types';
 import { ProductCRUD } from '$lib/db/product';
 import { CategoryCRUD } from '$lib/db/category';
-import { MAX_ITEMS_PER_PAGE } from '$lib/constants';
+import { MAX_ITEMS_PER_PAGE } from '$lib/constants/index';
 
-export const load = (async ({ url }) => {
+export const load: PageServerLoad = async ({ url }) => {
   const page = parseInt(url.searchParams.get('page') || '1');
   const search = url.searchParams.get('search') || undefined;
   const categoryId = url.searchParams.get('category') || undefined;
@@ -23,6 +24,9 @@ export const load = (async ({ url }) => {
 
   const sort = sortMapping[sortParam] || sortMapping.newest;
 
+  const discountParam = url.searchParams.get('discount') || '0-100';
+  const minDiscount = parseInt(discountParam.split('-')[0]) || undefined;
+
   const [productsResult, categoriesResult] = await Promise.all([
     ProductCRUD.getFiltered(
       {
@@ -32,7 +36,8 @@ export const load = (async ({ url }) => {
         categoryId,
         categoryIds,
         minPrice,
-        maxPrice
+        maxPrice,
+        minDiscount
       },
       sort,
       page,
@@ -51,7 +56,8 @@ export const load = (async ({ url }) => {
       categoryIds: categoryIds || [],
       minPrice,
       maxPrice,
-      sort: sortParam
+      sort: sortParam,
+      discount: discountParam
     }
   };
-}) satisfies PageServerLoad;
+};

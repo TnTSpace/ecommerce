@@ -39,7 +39,7 @@
   import { navigating } from "$app/stores";
   import { untrack, onMount } from "svelte";
   import SelectComponent from "$lib/components/ui/select/select-component.svelte";
-  import { MAX_ITEMS_PER_PAGE } from "$lib/constants";
+  import { MAX_ITEMS_PER_PAGE } from "$lib/constants/index";
   import { Loader2 } from "@lucide/svelte";
 
   let { data }: PageProps = $props();
@@ -57,7 +57,6 @@
   // Expanded Filter State
   let selectedCategory = $state(untrack(() => data.filters?.categoryId || ""));
   let selectedTag = $state("");
-  let selectedBrand = $state("");
   let priceRange = $state(
     untrack(() => [
       data.filters?.minPrice || 0,
@@ -65,15 +64,14 @@
     ]),
   );
   let rating = $state("0-5");
-  let expressDelivery = $state(false);
-  let discountRange = $state("0-100");
+  let discountRange = $state(untrack(() => data.filters?.discount || "0-100"));
 
   // Sync prop changes (e.g. from navigation) back to local state
   $effect(() => {
     searchQuery = data.searchQuery || "";
     activeSearch = data.searchQuery || "";
-    sortBy = data.filters?.sort || "newest";
     selectedCategory = data.filters?.categoryId || "";
+    discountRange = data.filters?.discount || "0-100";
     priceRange = [
       data.filters?.minPrice || 0,
       data.filters?.maxPrice || 100000,
@@ -162,12 +160,10 @@
     if (sortBy !== "newest") params.set("sort", sortBy);
     if (selectedCategory) params.set("category", selectedCategory);
     if (selectedTag) params.set("tag", selectedTag);
-    if (selectedBrand) params.set("brand", selectedBrand);
     if (priceRange[0] > 0) params.set("minPrice", priceRange[0].toString());
     if (priceRange[1] < 100000)
       params.set("maxPrice", priceRange[1].toString());
     if (rating !== "0-5") params.set("rating", rating);
-    if (expressDelivery) params.set("express", "true");
     if (discountRange !== "0-100") params.set("discount", discountRange);
 
     const url = `/products?${params.toString()}`;
@@ -186,10 +182,8 @@
     const s = sortBy;
     const cat = selectedCategory;
     const tag = selectedTag;
-    const br = selectedBrand;
     const p = priceRange;
     const r = rating;
-    const e = expressDelivery;
     const d = discountRange;
 
     updateFilters();
@@ -205,10 +199,8 @@
   const clearFilters = () => {
     selectedCategory = "";
     selectedTag = "";
-    selectedBrand = "";
     priceRange = [0, 100000];
     rating = "0-5";
-    expressDelivery = false;
     discountRange = "0-100";
     sortBy = "newest";
     tempSortBy = "newest";
@@ -285,10 +277,8 @@
             {categories}
             bind:selectedCategory
             bind:selectedTag
-            bind:selectedBrand
             bind:priceRange
             bind:rating
-            bind:expressDelivery
             bind:discountRange
             onClear={clearFilters}
           />
@@ -469,7 +459,6 @@
                   {viewMode}
                   dealLabel={product.isFeatured ? "Hot" : undefined}
                   showOfficialBadge={i % 4 === 0}
-                  showExpressBadge={i % 3 === 0}
                 />
               {/each}
             </div>
@@ -533,15 +522,13 @@
         <DrawerDescription>Refine your search results.</DrawerDescription>
       </DrawerHeader>
 
-      <div class="mt-6 h-[60vh] overflow-y-auto pr-2">
+      <div class="mt-6 h-[60vh] overflow-y-auto pr-2 pb-12">
         <FilterSidebar
           {categories}
           bind:selectedCategory
           bind:selectedTag
-          bind:selectedBrand
           bind:priceRange
           bind:rating
-          bind:expressDelivery
           bind:discountRange
           onClear={clearFilters}
         />

@@ -1,4 +1,4 @@
-import type { FileType } from "$lib/constants";
+import type { FileType } from "$lib/constants/index";
 
 export interface iEmailMeta {
   to: string;

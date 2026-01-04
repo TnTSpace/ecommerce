@@ -110,7 +110,7 @@
       </Card>
 
       <div class="flex flex-col gap-3 sm:flex-row">
-        <Button href="/account/orders" variant="outline" class="flex-1">
+        <Button href="/orders" variant="outline" class="flex-1">
           View All Orders
         </Button>
         <Button href="/products" class="flex-1">

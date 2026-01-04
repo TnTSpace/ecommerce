@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { ProductCRUD } from '$lib/db/product';
 import { CategoryCRUD } from '$lib/db/category';
-import { MAX_ITEMS_PER_PAGE } from '$lib/constants';
+import { MAX_ITEMS_PER_PAGE } from '$lib/constants/index';
 
 export const load = (async () => {
   // Fetch featured products

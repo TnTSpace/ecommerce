@@ -17,8 +17,9 @@
   } from "@lucide/svelte";
   import { navigating } from "$app/stores";
   import { onMount, untrack } from "svelte";
-  import { MAX_ITEMS_PER_PAGE } from "$lib/constants";
+  import { MAX_ITEMS_PER_PAGE } from "$lib/constants/index";
   import { Loader2 } from "@lucide/svelte";
+  import Hero from "./components/Hero.svelte";
 
   let { data }: PageProps = $props();
 
@@ -76,123 +77,8 @@
   });
 </script>
 
-<div class="space-y-8 pb-8">
-  <!-- Modern Store Hero Section -->
-  <section class="relative overflow-hidden bg-background pt-8">
-    <div
-      class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
-    >
-      <div
-        class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-primary to-[#ff80b5] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-      ></div>
-    </div>
-
-    <div class="center mx-auto px-2">
-      <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
-        <div
-          class="max-w-2xl space-y-8 animate-in slide-in-from-left-10 duration-700"
-        >
-          <Badge
-            variant="outline"
-            class="border-primary/20 bg-primary/5 text-primary px-4 py-1.5 rounded-full font-bold"
-          >
-            <Sparkles class="mr-2 h-3.5 w-3.5" />
-            Summer Collection 2026
-          </Badge>
-          <h1
-            class="text-5xl md:text-7xl font-bold tracking-tight text-foreground"
-          >
-            Shop the Best <span
-              class="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"
-              >Tools & Electronics</span
-            >
-          </h1>
-          <p class="text-xl text-muted-foreground leading-relaxed">
-            Experience premium shopping with our curated collection of
-            high-performance products designed for modern life.
-          </p>
-          <div class="flex flex-wrap gap-4">
-            <Button
-              href="/products"
-              class="rounded-xl px-8 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
-            >
-              Shop Now
-              <ArrowRight class="ml-2 h-5 w-5" />
-            </Button>
-            <Button
-              href="/categories"
-              variant="outline"
-              class="rounded-xl px-8 font-bold backdrop-blur-sm transition-all hover:bg-accent"
-            >
-              Browse Categories
-            </Button>
-          </div>
-        </div>
-
-        <div
-          class="relative lg:ml-auto animate-in fade-in zoom-in duration-1000"
-        >
-          <div
-            class="relative aspect-square w-full max-w-[500px] mx-auto lg:max-w-none"
-          >
-            <!-- Decorative circle -->
-            <div
-              class="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full blur-3xl animate-pulse"
-            ></div>
-            <img
-              src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=1000"
-              alt="Featured Sneaker"
-              class="relative z-10 h-full w-full object-contain drop-shadow-lg transition-transform duration-500 hover:scale-110"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features Icons -->
-  <section class="center mx-auto px-2">
-    <div
-      class="grid grid-cols-2 md:grid-cols-4 gap-6 rounded-xl border border-border bg-card p-8 shadow-sm"
-    >
-      <div class="flex flex-col items-center text-center space-y-2">
-        <div
-          class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"
-        >
-          <Truck class="h-6 w-6" />
-        </div>
-        <h3 class="font-bold text-sm">Free Shipping</h3>
-        <p class="text-xs text-muted-foreground">On all orders over ₦50,000</p>
-      </div>
-      <div class="flex flex-col items-center text-center space-y-2">
-        <div
-          class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"
-        >
-          <ShieldCheck class="h-6 w-6" />
-        </div>
-        <h3 class="font-bold text-sm">Secure Payment</h3>
-        <p class="text-xs text-muted-foreground">100% secure checkout</p>
-      </div>
-      <div class="flex flex-col items-center text-center space-y-2">
-        <div
-          class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"
-        >
-          <Clock class="h-6 w-6" />
-        </div>
-        <h3 class="font-bold text-sm">Fast Delivery</h3>
-        <p class="text-xs text-muted-foreground">Delivery within 24-48 hours</p>
-      </div>
-      <div class="flex flex-col items-center text-center space-y-2">
-        <div
-          class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"
-        >
-          <StoreIcon class="h-6 w-6" />
-        </div>
-        <h3 class="font-bold text-sm">Official Store</h3>
-        <p class="text-xs text-muted-foreground">Genuine certified products</p>
-      </div>
-    </div>
-  </section>
+<div class="space-y-12 pb-8">
+  <Hero {categories} />
 
   <!-- Categories Highlights -->
   <section class="center mx-auto px-2">

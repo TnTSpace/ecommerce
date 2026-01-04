@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { Fields } from '$lib/constants';
+import { Fields } from '$lib/constants/index';
 import { getSearchFilterList } from '$lib/server';
 
 export const GET: RequestHandler = async ({ locals, url }) => {

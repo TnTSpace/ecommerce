@@ -2,6 +2,8 @@ import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { verifyTransaction } from '$lib/server/paystack.server';
 import { OrderCRUD } from '$lib/db/order';
+import { emailService } from '$lib/server/emailservice';
+import { formatPrice } from '$lib/fxns';
 
 export const load = (async ({ params, url }) => {
   const { id } = params;
@@ -18,6 +20,17 @@ export const load = (async ({ params, url }) => {
     // Update order status
     await OrderCRUD.updatePaymentStatus(id, 'paid', reference);
     await OrderCRUD.updateStatus(id, 'processing');
+
+    const orderResult = await OrderCRUD.getById(id);
+    if (orderResult.success && orderResult.data) {
+      await emailService.sendTransactionNotification(
+        orderResult.data.user?.email || verification.data.customer.email,
+        {
+          id: id,
+          total: formatPrice(orderResult.data.total)
+        }
+      );
+    }
 
     throw redirect(303, `/order/${id}/confirmed?status=success`);
   } else {

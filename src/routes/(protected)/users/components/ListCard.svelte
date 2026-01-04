@@ -10,7 +10,7 @@
   import { page } from "$app/state";
   import { admin } from "$lib/auth-client";
   import { getRoleBadgeVariant, roles } from "$lib/authentication/fxn";
-  import { adminRoles, Role } from "$lib/constants";
+  import { adminRoles, Role } from "$lib/constants/index";
   import Identity from "$lib/authentication/ui/user/Identity.svelte";
 
   interface Props {

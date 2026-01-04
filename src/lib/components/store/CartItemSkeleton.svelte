@@ -3,47 +3,62 @@
 </script>
 
 <div
-  class="relative overflow-hidden rounded-xl border-none bg-white/70 shadow-sm backdrop-blur-md dark:bg-white/5 p-4 md:p-6"
+  class="relative overflow-hidden rounded-xl border-none bg-white/70 shadow-sm backdrop-blur-md dark:bg-white/5 py-0 gap-0"
 >
-  <div class="flex flex-col gap-6 md:flex-row">
+  <div class="flex">
     <!-- Image Skeleton -->
     <div
-      class="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 animate-pulse dark:bg-slate-900 md:h-32 md:w-32"
+      class="h-32 w-32 shrink-0 bg-slate-100 animate-pulse dark:bg-slate-900 sm:w-40 sm:h-40"
     ></div>
 
-    <!-- Details Skeleton -->
-    <div class="flex flex-1 flex-col justify-between py-1 space-y-4">
-      <div class="space-y-2">
-        <div class="flex items-start justify-between gap-4">
-          <div
-            class="h-6 w-2/3 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
-          ></div>
-          <div
-            class="h-6 w-24 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
-          ></div>
+    <!-- Info Skeleton -->
+    <div class="flex min-w-0 flex-1 flex-col">
+      <div class="flex flex-1 flex-col p-4 pb-2">
+        <div
+          class="flex flex-col md:flex-row items-start justify-between gap-2"
+        >
+          <div class="min-w-0 flex-1 space-y-2">
+            <div
+              class="h-4 w-16 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
+            ></div>
+            <div
+              class="h-5 w-3/4 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
+            ></div>
+            <div
+              class="h-4 w-1/4 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
+            ></div>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <div
+              class="h-6 w-20 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
+            ></div>
+            <div
+              class="h-3 w-12 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
+            ></div>
+          </div>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Actions Skeleton -->
+  <div class="border-t border-border/50 p-4 pt-3">
+    <div class="flex items-center justify-between gap-4">
+      <div
+        class="h-9 w-28 bg-slate-100 animate-pulse rounded-xl dark:bg-slate-900"
+      ></div>
+      <div class="flex items-center gap-4">
+        <div class="hidden sm:flex flex-col items-end gap-1">
           <div
-            class="h-5 w-20 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
+            class="h-3 w-8 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
           ></div>
           <div
             class="h-5 w-16 bg-slate-200 animate-pulse rounded dark:bg-slate-800"
           ></div>
         </div>
-      </div>
-
-      <div class="mt-6 flex items-center justify-between">
-        <!-- Quantity Controls Skeleton -->
         <div
-          class="h-10 w-32 bg-slate-100 animate-pulse rounded-full dark:bg-slate-900"
+          class="h-9 w-9 bg-slate-100 animate-pulse rounded-full dark:bg-slate-900"
         ></div>
-
-        <!-- Actions Skeleton -->
-        <div class="flex items-center gap-6">
-          <div
-            class="h-10 w-10 bg-slate-100 animate-pulse rounded-full dark:bg-slate-900"
-          ></div>
-        </div>
       </div>
     </div>
   </div>

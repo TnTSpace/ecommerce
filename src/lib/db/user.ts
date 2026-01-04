@@ -2,7 +2,7 @@ import { db } from "./drizzle";
 import { user } from "./schema";
 import { eq, desc, or, ilike, count, and } from "drizzle-orm";
 import type { iFetchMeta } from "$lib/interface";
-import { emptyMetalist, MAX_ITEMS_PER_PAGE } from "$lib/constants";
+import { emptyMetalist, MAX_ITEMS_PER_PAGE } from "$lib/constants/index";
 
 export const getUser = async (userId: string) => {
   try {

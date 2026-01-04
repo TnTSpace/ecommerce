@@ -5,7 +5,7 @@
   import ModeToggle from "$lib/components/widgets/ModeToggle.svelte";
   import { Button } from "$lib/components/ui/button";
   import type { User } from "$lib/auth";
-  import { Role, getNavigation, Constants } from "$lib/constants";
+  import { Role, getNavigation, Constants } from "$lib/constants/index";
   import AuthDialog from "$lib/authentication/ui/user/auth-dialog.svelte";
   import { cart } from "$lib/store/cart.svelte";
 

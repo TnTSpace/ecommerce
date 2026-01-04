@@ -90,8 +90,8 @@
   });
 
   // SEO: Prepare meta data
-  const siteUrl = 'https://ecommerce.toolsntuts.com';
-  const pageTitle = $derived(product?.metaTitle || `${product?.name} - Ecommerce`);
+  const siteUrl = 'https://laniastores.toolsntuts.com';
+  const pageTitle = $derived(product?.metaTitle || `${product?.name} - Lania Stores`);
   const pageDescription = $derived(
     product?.metaDescription ||
     product?.shortDescription ||
@@ -120,7 +120,7 @@
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="Ecommerce - Your Trusted Retail" />
+    <meta property="og:site_name" content="Lania Stores - Your Trusted Retail" />
     
     <!-- Product-specific OG tags -->
     <meta property="product:price:amount" content={product.basePrice} />
@@ -163,7 +163,7 @@
         "availability": "${product.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}",
         "seller": {
           "@type": "Organization",
-          "name": "Ecommerce - Your Trusted Retail"
+          "name": "Lania Stores - Your Trusted Retail"
         }
       }
     }

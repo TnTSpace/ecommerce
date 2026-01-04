@@ -20,26 +20,47 @@
       <main class="flex flex-col gap-6">
         <!-- Toolbar Skeleton -->
         <div
-          class="sticky top-20 z-30 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg overflow-hidden p-4 sm:p-6"
+          class="sticky top-20 z-30 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg overflow-hidden"
         >
-          <div class="flex items-center justify-between gap-4">
+          <!-- Desktop Toolbar Header (Hidden on Mobile) -->
+          <div
+            class="hidden lg:flex items-center justify-between border-b border-border p-4 px-6 bg-muted/5"
+          >
             <div class="flex items-center gap-3">
-              <Skeleton class="h-10 w-10 rounded-xl" />
+              <Skeleton class="h-9 w-9 rounded-xl" />
               <div class="space-y-1.5">
                 <Skeleton class="h-5 w-24" />
-                <Skeleton class="h-3 w-16" />
+                <Skeleton class="h-3 w-32" />
               </div>
             </div>
-            <div class="hidden sm:flex gap-2">
+
+            <div class="flex items-center gap-1.5">
               <Skeleton class="h-9 w-9 rounded-lg" />
               <Skeleton class="h-9 w-9 rounded-lg" />
               <Skeleton class="h-9 w-9 rounded-lg" />
             </div>
           </div>
-          <div class="mt-4 flex items-center gap-3">
+
+          <!-- Mobile Toolbar (Only Count, Search, Toggle) -->
+          <div
+            class="flex lg:hidden items-center justify-between gap-3 p-3 pb-3 border-b border-white/5"
+          >
+            <Skeleton class="h-10 w-24 rounded-xl" />
+            <div class="flex items-center gap-2">
+              <Skeleton class="h-10 w-10 rounded-xl" />
+              <Skeleton class="h-10 w-20 rounded-xl" />
+            </div>
+          </div>
+
+          <!-- Desktop Search & Sort Row -->
+          <div
+            class="hidden lg:flex items-center justify-between gap-3 p-3 sm:p-4"
+          >
             <Skeleton class="h-11 flex-1 rounded-xl" />
-            <Skeleton class="h-11 w-20 rounded-xl" />
-            <Skeleton class="hidden lg:block h-11 w-48 rounded-xl" />
+            <div class="flex items-center gap-3">
+              <Skeleton class="h-10 w-20 rounded-xl" />
+              <Skeleton class="h-11 w-48 rounded-xl" />
+            </div>
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { db } from '$lib/db/drizzle';
 import { schema } from '$lib/db/schema';
 import { createAuthMiddleware, openAPI, admin as adminPlugin, customSession, magicLink } from 'better-auth/plugins';
 import { env } from '$env/dynamic/private';
-import { Role } from '$lib/constants';
+import { Role } from '$lib/constants/index';
 import { roles, ac } from '$lib/db/permissions';
 import { sendEmailAction } from '$lib/authentication/server';
 import { getAccountByUserId } from '$lib/db/account';

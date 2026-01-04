@@ -1,4 +1,4 @@
-import { Role } from "$lib/constants";
+import { Role } from "$lib/constants/index";
 
 export const roles = [
   { value: Role.ADMIN, label: 'Admin', color: 'destructive' },

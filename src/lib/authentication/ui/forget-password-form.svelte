@@ -3,7 +3,7 @@
 	import { Input } from "$lib/components/ui/input";
 	import { Label } from "$lib/components/ui/label";
 	import { toast } from "svelte-sonner";
-	import { forgetPassword } from "$lib/auth-client";
+	import { requestPasswordReset } from "$lib/auth-client";
 	import LoadingSpinner from "./loading-spinner.svelte";
 	let isPending = $state(false);
 	const onsubmit = async (evt: SubmitEvent) => {
@@ -12,7 +12,7 @@
 		const email = String(formData.get("email"));
 		if (!email) return toast.error("Please enter a valid email address.");
 		try {
-			await forgetPassword({
+			await requestPasswordReset({
 				email,
 				redirectTo: "/reset-password",
 				fetchOptions: {

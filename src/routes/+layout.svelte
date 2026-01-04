@@ -1,9 +1,9 @@
 <script lang="ts">
-	import '../app.css';
-	import { Toaster } from 'svelte-sonner';
-	import { ModeWatcher } from 'mode-watcher';
-	import { SiteMeta } from '$lib/constants';
-	
+	import "../app.css";
+	import { Toaster } from "svelte-sonner";
+	import { ModeWatcher } from "mode-watcher";
+	import { SiteMeta } from "$lib/constants/index";
+
 	let { children } = $props();
 </script>
 
@@ -12,7 +12,7 @@
 	<title>{SiteMeta.title}</title>
 	<meta name="title" content={SiteMeta.title} />
 	<meta name="description" content={SiteMeta.description} />
-	<meta name="keywords" content={SiteMeta.keywords.join(', ')} />
+	<meta name="keywords" content={SiteMeta.keywords.join(", ")} />
 
 	<!-- Open Graph / Facebook -->
 	<meta property="og:type" content="website" />

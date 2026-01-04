@@ -178,3 +178,14 @@
 }
 .feature-item { transition: all 0.3s ease; }
 .feature-item:hover { transform: translateX(8px); }
+
+@utility animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@utility bg-grid-pattern {
+  background-image:
+    linear-gradient(to right, hsl(var(--foreground) / 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--foreground) / 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}

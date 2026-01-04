@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ProductCRUD } from '$lib/db/product';
-import { MAX_ITEMS_PER_PAGE } from '$lib/constants';
+import { MAX_ITEMS_PER_PAGE } from '$lib/constants/index';
 
 export const GET: RequestHandler = async ({ url }) => {
   const page = parseInt(url.searchParams.get('page') || '1');
@@ -25,6 +25,9 @@ export const GET: RequestHandler = async ({ url }) => {
 
   const sort = sortMapping[sortParam] || sortMapping.newest;
 
+  const discountValue = url.searchParams.get('discount')?.split('-')[0];
+  const minDiscount = discountValue ? parseInt(discountValue) : undefined;
+
   const productsResult = await ProductCRUD.getFiltered(
     {
       search,
@@ -33,7 +36,8 @@ export const GET: RequestHandler = async ({ url }) => {
       categoryId,
       categoryIds,
       minPrice,
-      maxPrice
+      maxPrice,
+      minDiscount
     },
     sort,
     page,

@@ -38,7 +38,6 @@
     viewMode?: "grid" | "list";
     dealLabel?: string;
     showOfficialBadge?: boolean;
-    showExpressBadge?: boolean;
   }
 
   let {
@@ -47,7 +46,6 @@
     viewMode = "grid",
     dealLabel,
     showOfficialBadge = false,
-    showExpressBadge = false,
   }: Props = $props();
 
   let isWishlisted = $state(false);
@@ -129,15 +127,15 @@
   const openQuickView = async (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     isLoadingProduct = true;
     showQuickView = true;
-    
+
     try {
       // Fetch full product data including sizes
       const response = await fetch(`/api/products/${product.id}`);
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         fullProductData = result.data;
       } else {
@@ -145,7 +143,7 @@
         fullProductData = product;
       }
     } catch (error) {
-      console.error('Failed to load product details:', error);
+      console.error("Failed to load product details:", error);
       fullProductData = product;
     } finally {
       isLoadingProduct = false;
@@ -321,14 +319,6 @@
     <div class="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
       <!-- Badge Section -->
       <div class="flex min-h-[1.25rem] flex-wrap items-center gap-2">
-        {#if showExpressBadge}
-          <small
-            class="flex h-5 items-center justify-center rounded border border-primary/20 bg-primary/10 px-2 text-[10px] font-bold italic uppercase text-primary"
-          >
-            <Truck class="mr-1 h-3 w-3" />
-            Express
-          </small>
-        {/if}
         {#if product.category}
           <small
             class="flex h-5 items-center justify-center rounded border border-border bg-muted px-2 text-[10px] font-bold uppercase text-muted-foreground"

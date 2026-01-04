@@ -6,7 +6,7 @@
   import { type ComponentProps } from "svelte";
   import type { User } from "$lib/auth";
   import { page } from "$app/state";
-  import { getNavigation } from "$lib/constants";
+  import { getNavigation } from "$lib/constants/index";
 
   let {
     ref = $bindable(null),

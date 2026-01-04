@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { usersRoles, Constants, Role } from '$lib/constants';
+import { usersRoles, Constants, Role } from '$lib/constants/index';
 
 export const load = (async ({ locals, url }) => {
   const user = locals.user;

@@ -1,10 +1,10 @@
 import { BaseCRUD, eq, and, or, like, ilike, desc, asc, sql, inArray, type CRUDResult, type CRUDListResult } from "./crud";
-import { product, productImage, productSize, productTag, category, tag, size, type Product, type NewProduct, type ProductImage, type ProductSize } from "./schema";
+import { product, productImage, productSize, productTag, category, tag, size, file, type Product, type NewProduct, type ProductImage, type ProductSize } from "./schema";
 import { db } from "./drizzle";
 
 interface ProductWithRelations extends Product {
-  category?: typeof category.$inferSelect | null;
-  images?: ProductImage[];
+  category?: (typeof category.$inferSelect & { imageFile?: typeof file.$inferSelect | null }) | null;
+  images?: (ProductImage & { imageFile?: typeof file.$inferSelect | null })[];
   sizes?: (ProductSize & { size?: typeof size.$inferSelect })[];
   tags?: { tag: typeof tag.$inferSelect }[];
   averageRating?: number;
@@ -23,6 +23,7 @@ interface ProductFilters {
   search?: string;
   tags?: string[];
   inStock?: boolean;
+  minDiscount?: number;
 }
 
 interface ProductSortOptions {
@@ -135,6 +136,9 @@ class ProductCRUDClass extends BaseCRUD<typeof product, Product, NewProduct> {
       }
       if (filters?.inStock) {
         conditions.push(sql`${product.stockQuantity} > 0`);
+      }
+      if (filters?.minDiscount !== undefined) {
+        conditions.push(sql`${product.compareAtPrice} > 0 AND (${product.compareAtPrice} - ${product.basePrice}) / ${product.compareAtPrice} * 100 >= ${filters.minDiscount}`);
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

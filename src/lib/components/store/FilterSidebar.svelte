@@ -16,13 +16,10 @@
     class?: string;
     categories: any[];
     tags?: any[];
-    brands?: any[];
     selectedCategory?: string;
     selectedTag?: string;
-    selectedBrand?: string;
     priceRange: number[];
     rating?: string;
-    expressDelivery?: boolean;
     discountRange?: string;
     onClear: () => void;
   }
@@ -31,13 +28,10 @@
     class: className,
     categories,
     tags = [],
-    brands = [],
     selectedCategory = $bindable(""),
     selectedTag = $bindable(""),
-    selectedBrand = $bindable(""),
     priceRange = $bindable(),
     rating = $bindable("0-5"),
-    expressDelivery = $bindable(false),
     discountRange = $bindable("0-100"),
     onClear,
   }: Props = $props();
@@ -45,11 +39,9 @@
   const hasFilters = $derived(
     selectedCategory !== "" ||
       selectedTag !== "" ||
-      selectedBrand !== "" ||
       priceRange[0] > 0 ||
       priceRange[1] < 100000 ||
       rating !== "0-5" ||
-      expressDelivery ||
       discountRange !== "0-100",
   );
 
@@ -76,9 +68,6 @@
   );
   const tagOptions = $derived(
     tags.map((t) => ({ label: t.name, value: t.id })),
-  );
-  const brandOptions = $derived(
-    brands.map((b) => ({ label: b.name, value: b.id })),
   );
 </script>
 
@@ -125,21 +114,6 @@
       placeholder="Select Tag"
       options={tagOptions}
       bind:value={selectedTag}
-      class="w-full bg-background font-medium"
-    />
-  </div>
-
-  <!-- Brand -->
-  <div class="flex flex-col gap-3">
-    <Label
-      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-      >Brand</Label
-    >
-    <SelectComponent
-      name="brand"
-      placeholder="Select Brand"
-      options={brandOptions}
-      bind:value={selectedBrand}
       class="w-full bg-background font-medium"
     />
   </div>
@@ -221,26 +195,6 @@
         </div>
       {/each}
     </RadioGroup>
-  </div>
-
-  <!-- Express Delivery -->
-  <div class="flex flex-col gap-4">
-    <Label
-      class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-      >Express Delivery</Label
-    >
-    <div
-      class="flex items-center space-x-3 rounded-lg border border-border p-3 bg-muted/10"
-    >
-      <Checkbox id="express-delivery" bind:checked={expressDelivery} />
-      <Label
-        for="express-delivery"
-        class="flex flex-1 items-center gap-2 cursor-pointer text-sm font-bold italic text-primary"
-      >
-        <Truck class="h-4 w-4" />
-        JUMIA EXPRESS
-      </Label>
-    </div>
   </div>
 
   <!-- Discount Percentage -->

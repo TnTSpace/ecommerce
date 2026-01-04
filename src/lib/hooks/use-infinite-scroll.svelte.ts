@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { MAX_ITEMS_PER_PAGE } from '$lib/constants';
+import { MAX_ITEMS_PER_PAGE } from '$lib/constants/index';
 import type { iFetchMeta } from '$lib/interface';
 import { createInfiniteQuery, QueryClient, type CreateInfiniteQueryResult, type InfiniteData } from '@tanstack/svelte-query';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-  import type { Role } from "$lib/constants";
+  import type { Role } from "$lib/constants/index";
   import type { User } from "$lib/auth";
   import { cn } from "$lib/utils";
   import { page } from "$app/state";

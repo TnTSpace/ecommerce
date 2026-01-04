@@ -1,4 +1,4 @@
-import { JUMIA_SHIPPING } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 export interface ShippingZone {
   zone: string;
@@ -32,8 +32,18 @@ class JumiaShippingService {
       return this.cache;
     }
 
+    const shippingUrl = env.JUMIA_SHIPPING;
+
+    if (!shippingUrl || !shippingUrl.startsWith('http')) {
+      console.error("[JumiaShippingService] Invalid or missing JUMIA_SHIPPING URL:", shippingUrl);
+      return { zones: [], rates: [] };
+    }
+
     try {
-      const response = await fetch(JUMIA_SHIPPING);
+      const response = await fetch(shippingUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const rawData = await response.json();
 
       // The data comes as an array with one object containing zones and rates flattened or nested.

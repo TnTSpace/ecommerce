@@ -9,7 +9,7 @@
 	import { signUp } from "$lib/auth-client";
 	import { toast } from "svelte-sonner";
 	import { getRedirectUrl } from "$lib/authentication/client";
-	import { Constants } from "$lib/constants";
+	import { Constants } from "$lib/constants/index";
 	interface Props extends HTMLAttributes<HTMLDivElement> {
 		class?: string;
 	}

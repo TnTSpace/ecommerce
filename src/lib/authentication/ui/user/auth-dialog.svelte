@@ -4,7 +4,7 @@
 	import { Button } from "$lib/components/ui/button";
 	import { page } from "$app/state";
 	import type { User } from "$lib/auth";
-	import { Constants } from "$lib/constants";
+	import { Constants } from "$lib/constants/index";
 	const user = page.data.user as User;
 </script>
 
