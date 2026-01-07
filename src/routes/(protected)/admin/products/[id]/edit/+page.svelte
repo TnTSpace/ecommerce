@@ -136,7 +136,9 @@
         toast.success("Image uploaded and saved");
       } else {
         const error =
-          result.type === "failure" ? result.data?.error : "Upload failed";
+          result.type === "failure" && typeof result.data?.error === "string"
+            ? result.data.error
+            : "Upload failed";
         toast.error(error);
       }
     } catch (error) {
@@ -199,8 +201,8 @@
         await invalidateAll();
       } else {
         const error =
-          result.type === "failure"
-            ? result.data?.error
+          result.type === "failure" && typeof result.data?.error === "string"
+            ? result.data.error
             : "Failed to add image";
         toast.error(error);
       }
@@ -238,7 +240,9 @@
         await invalidateAll();
       } else {
         const error =
-          result.type === "failure" ? result.data?.error : "Delete failed";
+          result.type === "failure" && typeof result.data?.error === "string"
+            ? result.data.error
+            : "Delete failed";
         toast.error(error);
       }
     } catch (error: any) {
@@ -247,11 +251,6 @@
     } finally {
       deletingImageIds.delete(image.id);
     }
-  };
-
-  const removeNewImage = (index: number) => {
-    imagesToUpload = imagesToUpload.filter((_, i) => i !== index);
-    newImagePreviews = newImagePreviews.filter((_, i) => i !== index);
   };
 
   const addFeature = () => {
@@ -769,7 +768,7 @@
                   class="h-full w-full object-cover"
                 />
                 <div
-                  class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  class="absolute inset-0 bg-black/40 transition-opacity flex items-center justify-center"
                 >
                   <Button
                     variant="destructive"

@@ -12,7 +12,12 @@
     onClose: () => void;
   }
 
-  let { open = $bindable(), product, isLoading = false, onClose }: Props = $props();
+  let {
+    open = $bindable(),
+    product,
+    isLoading = false,
+    onClose,
+  }: Props = $props();
 
   let isMobile = $state(false);
 
@@ -42,7 +47,11 @@
         class="w-full !max-w-4xl max-h-[90vh] overflow-hidden p-0 rounded-xl border-none shadow-lg"
       >
         <ScrollArea class="h-full max-h-[90vh] p-8">
-          <ProductDetailsView {product} />
+          <ProductDetailsView
+            {product}
+            reviewStats={product.reviewStats}
+            showTabs={false}
+          />
         </ScrollArea>
       </Dialog.Content>
     </Dialog.Root>
@@ -53,7 +62,11 @@
           <Drawer.Title class="text-xl font-bold">{product.name}</Drawer.Title>
         </Drawer.Header>
         <div class="overflow-y-auto px-6 pb-12 mt-4 scrollbar-hide">
-          <ProductDetailsView {product} showTabs={false} />
+          <ProductDetailsView
+            {product}
+            reviewStats={product.reviewStats}
+            showTabs={false}
+          />
         </div>
       </Drawer.Content>
     </Drawer.Root>

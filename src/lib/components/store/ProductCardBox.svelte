@@ -1,0 +1,210 @@
+<script lang="ts">
+  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { cn } from "$lib/utils.js";
+  import { Package, Star } from "@lucide/svelte";
+  import { formatPrice } from "$lib/fxns";
+  import QuickView from "./QuickView.svelte";
+
+  import { useSession } from "$lib/auth-client";
+  import { toast } from "svelte-sonner";
+  import { Heart } from "@lucide/svelte";
+  import { page } from "$app/state";
+
+  interface Props {
+    product: any;
+    dealLabel?: string;
+    isWishlisted?: boolean;
+    onWishlistToggle?: (isWishlisted: boolean) => void;
+  }
+
+  let props: Props = $props();
+  let { product, dealLabel, onWishlistToggle } = props;
+  const session = useSession();
+  let isWishlisted = $state(props.isWishlisted ?? false);
+
+  $effect(() => {
+    // Sync with prop if provided
+    if (props.isWishlisted !== undefined) {
+      isWishlisted = props.isWishlisted;
+    } else if (product?.id) {
+      // Otherwise sync with global wishlist data from layout
+      const ids = page.data.wishlistProductIds || [];
+      isWishlisted = ids.includes(product.id);
+    }
+  });
+
+  let showQuickView = $state(false);
+  let fullProductData = $state<any>(null);
+  let isLoadingProduct = $state(false);
+
+  const primaryImage = $derived(
+    product.images?.[0]?.url || "/placeholder-product.jpg",
+  );
+
+  const openQuickView = async (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    isLoadingProduct = true;
+    showQuickView = true;
+
+    try {
+      // Fetch full product data including sizes and full description
+      const response = await fetch(`/api/products/${product.id}`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        fullProductData = result.data;
+      } else {
+        // Fallback to basic product data if API fails
+        fullProductData = product;
+      }
+    } catch (error) {
+      console.error("Failed to load product details:", error);
+      fullProductData = product;
+    } finally {
+      isLoadingProduct = false;
+    }
+  };
+
+  const toggleWishlist = async (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const currentUser = $session.data?.user || page.data.user;
+
+    if (!currentUser) {
+      toast.error("Please login to use wishlist", {
+        description: "You need an account to save items for later.",
+        action: {
+          label: "Login",
+          onClick: () => (window.location.href = "/auth/login"),
+        },
+      });
+      return;
+    }
+
+    const previousState = isWishlisted;
+    isWishlisted = !isWishlisted;
+
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: isWishlisted ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update wishlist");
+      }
+
+      toast.success(
+        isWishlisted ? "Added to wishlist" : "Removed from wishlist",
+        {
+          position: "bottom-right",
+        },
+      );
+
+      onWishlistToggle?.(isWishlisted);
+    } catch (error) {
+      isWishlisted = previousState;
+      toast.error("Failed to update wishlist");
+    }
+  };
+</script>
+
+<div
+  role="button"
+  tabindex="0"
+  onclick={openQuickView}
+  onkeydown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openQuickView(e as any);
+    }
+  }}
+  class="group relative aspect-square w-full overflow-hidden rounded-xl border bg-card text-left transition-all hover:shadow-lg cursor-pointer active:scale-[0.98]"
+>
+  <!-- Image Layer -->
+  <div class="absolute inset-0 z-0">
+    {#if primaryImage && primaryImage !== "/placeholder-product.jpg"}
+      <img
+        src={primaryImage}
+        alt={product.name}
+        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+      />
+    {:else}
+      <div
+        class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5"
+      >
+        <Package class="h-12 w-12 text-primary/20" />
+      </div>
+    {/if}
+
+    <!-- Gradient Overlay -->
+    <div
+      class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"
+    ></div>
+  </div>
+
+  <!-- Wishlist Button -->
+  <button
+    onclick={toggleWishlist}
+    class={cn(
+      "absolute right-2 top-2 z-20 flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300",
+      isWishlisted
+        ? "bg-primary/20 backdrop-blur-md text-primary shadow-sm"
+        : "bg-black/20 backdrop-blur-md text-white hover:bg-black/40 hover:scale-105",
+    )}
+    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+  >
+    <Heart
+      class={cn(
+        "h-5 w-5 transition-transform duration-300",
+        isWishlisted && "scale-110",
+      )}
+      fill={isWishlisted ? "currentColor" : "none"}
+    />
+  </button>
+
+  <!-- Bottom Content -->
+  <div class="absolute bottom-0 left-0 z-10 w-full p-2 pointer-events-none">
+    <h3
+      class="text-base text-white line-clamp-1 leading-tight group-hover:text-primary transition-colors mb-0.5"
+    >
+      {product.name}
+    </h3>
+
+    <div class="flex items-end justify-between gap-2">
+      <div class="flex flex-col">
+        <span class="text-base font-bold text-white leading-none">
+          {formatPrice(product.basePrice)}
+        </span>
+      </div>
+
+      <div class="flex flex-col items-end gap-1.5">
+        {#if product.averageRating}
+          <div
+            class="flex items-center gap-1 bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/5"
+          >
+            <Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
+            <span class="text-[10px] font-bold text-white">
+              {product.averageRating.toFixed(1)}
+            </span>
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+</div>
+
+<QuickView
+  bind:open={showQuickView}
+  product={fullProductData || product}
+  isLoading={isLoadingProduct}
+  onClose={() => {
+    showQuickView = false;
+    fullProductData = null;
+  }}
+/>

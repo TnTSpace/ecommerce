@@ -16,11 +16,14 @@
     ShoppingBag,
     MapPin,
     CheckCircle2,
+    CreditCard,
+    Banknote,
   } from "@lucide/svelte";
   import SelectComponent from "$lib/components/ui/select/select-component.svelte";
   import { formatPrice } from "$lib/fxns";
   import { Separator } from "$lib/components/ui/separator/index.js";
   import { fade, slide } from "svelte/transition";
+  import { cn } from "$lib/utils";
 
   interface Props {
     open: boolean;
@@ -40,6 +43,9 @@
   // Delivery method
   let deliveryMethod = $state<"shipping" | "pickup">("shipping");
   let pickupDetails = $state("");
+
+  // Payment method
+  let paymentMethod = $state<"paystack" | "pod">("paystack");
 
   // Shipping data from layout
   const zones = $derived(page.data.shippingZones || []);
@@ -67,6 +73,9 @@
   );
   const totalAmount = $derived(
     parseFloat(product?.basePrice || 0) + shippingFee,
+  );
+  const amountToPayNow = $derived(
+    paymentMethod === "pod" ? shippingFee : totalAmount,
   );
 
   // Form State
@@ -135,6 +144,8 @@
           shippingCost: shippingFee,
           pickupDetails: deliveryMethod === "pickup" ? pickupDetails : null,
           userId: user?.id || null,
+          paymentMethod,
+          amountToPayNow,
         }),
       });
 
@@ -331,6 +342,75 @@
       {/if}
     </div>
 
+    <!-- Payment Method Selection -->
+    {#if deliveryMethod === "shipping"}
+      <div class="space-y-3 pt-2">
+        <div class="flex items-center gap-2 mb-1">
+          <CreditCard class="h-4 w-4 text-primary" />
+          <span
+            class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+            >Payment Options</span
+          >
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onclick={() => (paymentMethod = "paystack")}
+            class={cn(
+              "text-left rounded-xl border-2 p-3 transition-all",
+              paymentMethod === "paystack"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50",
+            )}
+          >
+            <div class="flex items-center gap-2">
+              <CreditCard class="h-4 w-4 text-primary" />
+              <div>
+                <span class="text-xs font-bold">Pay Now</span>
+                <p class="text-[10px] text-muted-foreground">Full Payment</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onclick={() => (paymentMethod = "pod")}
+            class={cn(
+              "text-left rounded-xl border-2 p-3 transition-all",
+              paymentMethod === "pod"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50",
+            )}
+          >
+            <div class="flex items-center gap-2">
+              <Banknote class="h-4 w-4 text-primary" />
+              <div>
+                <span class="text-xs font-bold">On Delivery</span>
+                <p class="text-[10px] text-muted-foreground">
+                  Pay Shipping Now
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {#if paymentMethod === "pod"}
+          <div
+            class="bg-primary/5 p-3 rounded-xl border border-primary/20"
+            transition:fade
+          >
+            <p class="text-[10px] leading-relaxed text-primary font-medium">
+              <span class="font-bold uppercase tracking-tight mr-1">Note:</span>
+              For Payment on Delivery, you only pay the
+              <span class="font-bold">{formatPrice(shippingFee)}</span> shipping fee
+              now to confirm your order. The balance will be paid when your item arrives.
+            </p>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
     <!-- Order Summary -->
     <div class="pt-2">
       <Separator class="mb-4" />
@@ -345,7 +425,7 @@
           <span class="text-muted-foreground">Shipping Fee</span>
           <span
             class={deliveryMethod === "pickup" || selectedZone
-              ? "font-medium text-green-600"
+              ? "font-bold text-primary"
               : "italic text-muted-foreground"}
           >
             {#if deliveryMethod === "pickup"}
@@ -357,12 +437,24 @@
             {/if}
           </span>
         </div>
+
         <div
           class="flex justify-between pt-2 border-t border-dashed border-border mt-2"
         >
-          <span class="font-bold">Total Amount</span>
-          <span class="text-lg font-bold text-primary"
+          <span class="font-bold">Order Total</span>
+          <span class="text-base font-bold text-foreground"
             >{formatPrice(totalAmount)}</span
+          >
+        </div>
+
+        <div
+          class="flex justify-between items-center rounded-lg bg-primary/10 p-2 mt-2"
+        >
+          <span class="text-xs font-bold uppercase tracking-wider text-primary"
+            >Due Now</span
+          >
+          <span class="text-xl font-bold text-primary"
+            >{formatPrice(amountToPayNow)}</span
           >
         </div>
       </div>
@@ -372,7 +464,7 @@
     <div class="pt-4">
       <Button
         type="submit"
-        class="w-full h-14 rounded-2xl font-bold text-lg bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 group"
+        class="w-full rounded-xl font-bold text-lg bg-primary shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 group"
         disabled={isLoading ||
           (deliveryMethod === "shipping" && !selectedCity) ||
           (deliveryMethod === "pickup" && !pickupDetails.trim())}
@@ -382,7 +474,8 @@
           Processing...
         {:else}
           <Zap class="mr-2 h-5 w-5 fill-current" />
-          Pay {formatPrice(totalAmount)} Now
+          Pay {formatPrice(amountToPayNow)}
+          {paymentMethod === "pod" ? "to Confirm" : "Now"}
         {/if}
       </Button>
       <p
@@ -400,7 +493,9 @@
       <Dialog.Content
         class="sm:max-w-[480px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl bg-card"
       >
-        <div class="p-8">
+        <div
+          class="p-8 max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide"
+        >
           <div class="flex items-center gap-4 mb-8">
             <div class="relative">
               <div

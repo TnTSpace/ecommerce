@@ -1,20 +1,26 @@
 import type { PageServerLoad } from './$types';
 import { ProductCRUD } from '$lib/db/product';
+import { CategoryCRUD } from '$lib/db/category';
 
 export const load = (async ({ url }) => {
   const page = parseInt(url.searchParams.get('page') || '1');
   const search = url.searchParams.get('search') || undefined;
+  const categoryId = url.searchParams.get('category') || undefined;
 
-  const result = await ProductCRUD.getFiltered(
-    { search },
-    { field: 'createdAt', direction: 'desc' },
-    page,
-    20
-  );
+  const [result, categories] = await Promise.all([
+    ProductCRUD.getFiltered(
+      { search, categoryId },
+      { field: 'createdAt', direction: 'desc' },
+      page,
+      20
+    ),
+    CategoryCRUD.getAll()
+  ]);
 
   return {
     products: result.data || [],
     meta: result.meta,
+    categories: categories.data || [],
   };
 }) satisfies PageServerLoad;
 

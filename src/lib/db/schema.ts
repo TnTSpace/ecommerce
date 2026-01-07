@@ -222,7 +222,7 @@ export const order = pgTable("order", {
 export const orderItem = pgTable("order_item", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull().references(() => order.id, { onDelete: "cascade" }),
-  productId: text("product_id").notNull().references(() => product.id, { onDelete: "restrict" }),
+  productId: text("product_id").references(() => product.id, { onDelete: "set null" }),
   productSizeId: text("product_size_id").references(() => productSize.id, { onDelete: "set null" }),
   productName: text("product_name").notNull(),
   productSku: text("product_sku").notNull(),
@@ -249,7 +249,15 @@ export const review = pgTable("review", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
-  unique("review_unique").on(table.productId, table.userId, table.orderId)
+]);
+
+export const wishlist = pgTable("wishlist", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  productId: text("product_id").notNull().references(() => product.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  unique("wishlist_unique").on(table.userId, table.productId)
 ]);
 
 // ==================== SYSTEM CONFIGURATION ====================
@@ -376,6 +384,11 @@ export const reviewRelations = relations(review, ({ one }) => ({
   order: one(order, { fields: [review.orderId], references: [order.id] }),
 }));
 
+export const wishlistRelations = relations(wishlist, ({ one }) => ({
+  user: one(user, { fields: [wishlist.userId], references: [user.id] }),
+  product: one(product, { fields: [wishlist.productId], references: [product.id] }),
+}));
+
 // ==================== SCHEMA EXPORT ====================
 
 export const schema = {
@@ -384,6 +397,7 @@ export const schema = {
   address, cart, cartItem,
   order, orderItem,
   review,
+  wishlist,
   file, settings,
 };
 
@@ -417,6 +431,8 @@ export type OrderItem = typeof orderItem.$inferSelect;
 export type NewOrderItem = typeof orderItem.$inferInsert;
 export type Review = typeof review.$inferSelect;
 export type NewReview = typeof review.$inferInsert;
+export type Wishlist = typeof wishlist.$inferSelect;
+export type NewWishlist = typeof wishlist.$inferInsert;
 export type File = typeof file.$inferSelect;
 export type NewFile = typeof file.$inferInsert;
 export type Settings = typeof settings.$inferSelect;

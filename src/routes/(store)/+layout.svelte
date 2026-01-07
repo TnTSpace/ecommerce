@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { LayoutProps } from "./$types";
-  import BrandLink from "$lib/components/widgets/BrandLink.svelte";
   import Header from "$lib/components/sections/header.svelte";
   import Footer from "$lib/components/sections/footer.svelte";
+	import CookieConsentBtn from "$lib/components/widgets/CookieConsentBtn.svelte";
+	import WhatsAppFAB from "$lib/components/widgets/WhatsAppFAB.svelte";
 
   import BottomNav from "$lib/components/widgets/BottomNav.svelte";
 
@@ -27,6 +28,9 @@
   </main>
 
   <BottomNav />
-
   <Footer />
 </div>
+
+<!-- Global Widgets -->
+<WhatsAppFAB />
+<CookieConsentBtn />

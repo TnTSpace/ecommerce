@@ -2,6 +2,9 @@
   import Header from "$lib/components/sections/header.svelte";
   import Footer from "$lib/components/sections/footer.svelte";
   import BottomNav from "$lib/components/widgets/BottomNav.svelte";
+	import CookieConsentBtn from "$lib/components/widgets/CookieConsentBtn.svelte";
+	import WhatsAppFAB from "$lib/components/widgets/WhatsAppFAB.svelte";
+  
   let { children } = $props();
 </script>
 
@@ -13,3 +16,6 @@
   <Footer />
   <BottomNav />
 </div>
+<!-- Global Widgets -->
+<WhatsAppFAB />
+<CookieConsentBtn />

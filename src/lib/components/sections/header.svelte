@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import BrandLink from "$lib/components/widgets/BrandLink.svelte";
-  import { Home, LayoutDashboard, ShoppingCart } from "@lucide/svelte";
+  import { Home, LayoutDashboard, ShoppingCart, Heart } from "@lucide/svelte";
   import ModeToggle from "$lib/components/widgets/ModeToggle.svelte";
   import { Button } from "$lib/components/ui/button";
   import type { User } from "$lib/auth";
@@ -21,7 +21,7 @@
   };
 </script>
 
-<div class="bg-background sticky top-0 left-0 z-[11]">
+<div class="bg-background sticky top-0 left-0 z-49">
   <header class="border-b shadow-sm">
     <div class="center">
       <div class="flex h-16 items-center justify-between">
@@ -55,6 +55,16 @@
             </Button>
 
             <ModeToggle />
+
+            <Button
+              variant="outline"
+              size="icon"
+              class="relative rounded-lg hover:text-primary transition-colors hidden md:inline-flex"
+              href="/wishlist"
+              aria-label="Wishlist"
+            >
+              <Heart class="size-5" />
+            </Button>
 
             <Button
               variant="outline"

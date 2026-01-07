@@ -2,7 +2,7 @@
   import { cn } from "$lib/utils.js";
 
   interface Props {
-    viewMode?: "grid" | "list";
+    viewMode?: "grid" | "list" | "box";
   }
 
   let { viewMode = "grid" }: Props = $props();

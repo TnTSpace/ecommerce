@@ -28,10 +28,13 @@ export const GET: RequestHandler = async ({ url }) => {
   const discountValue = url.searchParams.get('discount')?.split('-')[0];
   const minDiscount = discountValue ? parseInt(discountValue) : undefined;
 
+  const activeParam = url.searchParams.get('active');
+  const isActive = activeParam === 'true' ? true : activeParam === 'false' ? false : undefined;
+
   const productsResult = await ProductCRUD.getFiltered(
     {
       search,
-      isActive: true,
+      isActive,
       isFeatured: featured || undefined,
       categoryId,
       categoryIds,

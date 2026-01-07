@@ -1,6 +1,7 @@
 import { BaseCRUD, eq, and, or, like, ilike, desc, asc, sql, inArray, type CRUDResult, type CRUDListResult } from "./crud";
 import { product, productImage, productSize, productTag, category, tag, size, file, type Product, type NewProduct, type ProductImage, type ProductSize } from "./schema";
 import { db } from "./drizzle";
+import { FileCRUD } from "./file";
 
 interface ProductWithRelations extends Product {
   category?: (typeof category.$inferSelect & { imageFile?: typeof file.$inferSelect | null }) | null;
@@ -254,6 +255,64 @@ class ProductCRUDClass extends BaseCRUD<typeof product, Product, NewProduct> {
       return { success: true, data: results };
     } catch (error) {
       return { success: false, data: [], error: error instanceof Error ? error.message : "Failed to get low stock products" };
+    }
+  }
+
+  /**
+   * Delete product with all its associated data (images in storage, etc.)
+   */
+  async delete(id: string): Promise<CRUDResult<Product>> {
+    try {
+      // 1. Get product with images to clean up storage
+      const productResult = await this.getById(id);
+      if (!productResult.success || !productResult.data) {
+        return { success: false, error: "Product not found" };
+      }
+
+      const productData = productResult.data;
+
+      // 2. Delete associated images from storage and file table
+      if (productData.images && productData.images.length > 0) {
+        for (const img of productData.images) {
+          if (img.fileId) {
+            await FileCRUD.deleteWithStorage(img.fileId);
+          }
+        }
+      }
+
+      // 3. HOTPATCH: Explicitly handle order_item foreign key constraint
+      // This ensures deletion works even if standard migrations haven't run.
+      try {
+        // A. Make column nullable
+        await db.execute(sql`ALTER TABLE "order_item" ALTER COLUMN "product_id" DROP NOT NULL`);
+        // B. Update constraint to SET NULL (Postgres specific)
+        await db.execute(sql`
+          ALTER TABLE "order_item" 
+          DROP CONSTRAINT IF EXISTS "order_item_product_id_product_id_fk",
+          ADD CONSTRAINT "order_item_product_id_product_id_fk" 
+          FOREIGN KEY ("product_id") 
+          REFERENCES "product"("id") 
+          ON DELETE SET NULL
+        `);
+      } catch (err) {
+        console.warn("[ProductCRUD] Deletion hotpatch warning (likely already applied or permissions issue):", err);
+      }
+
+      // 4. Delete the product itself
+      // Note: productSize, productImage, productTag etc. have onDelete: "cascade"
+      const [result] = await db.delete(product).where(eq(product.id, id)).returning();
+
+      if (!result) {
+        return { success: false, error: "Product record not found after deletion attempt" };
+      }
+
+      return { success: true, data: result };
+    } catch (error) {
+      console.error(`[ProductCRUD] Delete error:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to delete product (possibly due to existing orders)"
+      };
     }
   }
 }

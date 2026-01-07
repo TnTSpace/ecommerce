@@ -39,7 +39,7 @@ export type FileType = 'audio' | 'video' | 'file' | 'image';
 export const SiteMeta = {
   title: SITE_NAME,
   description: `Welcome to ${SITE_NAME} - Your trusted platform`,
-  keywords: ['lania stores','ecommerce', 'platform', 'app', SITE_NAME],
+  keywords: ['lania stores', 'ecommerce', 'platform', 'app', SITE_NAME],
   ogimage: 'https://laniastores.toolsntuts.com/screenshot-wide.webp',
   link: SITE_URL,
 };
@@ -226,13 +226,11 @@ export const getNavigation = (reference: string) => {
     publicNav: [
       { name: 'Home', href: '/', icon: Home, roles: homeRoles },
       { name: 'Products', href: '/products', icon: Package, roles: homeRoles },
-      { name: 'Categories', href: '/categories', icon: Store, roles: homeRoles },
       { name: 'Contact', href: '/contact', icon: Phone, roles: homeRoles },
     ],
     privateNav: [
       { name: 'Home', href: '/', icon: Home, roles: homeRoles },
       { name: 'Products', href: '/products', icon: Package, roles: homeRoles },
-      { name: 'Categories', href: '/categories', icon: Store, roles: homeRoles },
       { name: 'Contact', href: '/contact', icon: Phone, roles: homeRoles },
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: dashboardRoles },
     ],

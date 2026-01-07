@@ -1,4 +1,4 @@
-import { BaseCRUD, eq, asc, sql, type CRUDResult, type CRUDListResult } from "./crud";
+import { BaseCRUD, eq, and, or, ilike, asc, sql, type CRUDResult, type CRUDListResult } from "./crud";
 import { category, product, type Category, type NewCategory, type File } from "./schema";
 import { db } from "./drizzle";
 
@@ -186,6 +186,84 @@ class CategoryCRUDClass extends BaseCRUD<typeof category, Category, NewCategory>
       return { success: true, data: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : "Failed to update sort order" };
+    }
+  }
+
+  /**
+   * Get categories with filters, sorting, and pagination
+   */
+  async getFiltered(
+    filters?: { search?: string; isActive?: boolean },
+    page = 1,
+    limit = 20
+  ): Promise<CRUDListResult<CategoryWithChildren>> {
+    try {
+      const offset = (page - 1) * limit;
+      const conditions: any[] = [];
+
+      if (filters?.isActive !== undefined) {
+        conditions.push(eq(category.isActive, filters.isActive));
+      }
+
+      if (filters?.search) {
+        const searchTerm = `%${filters.search}%`;
+        conditions.push(
+          or(
+            ilike(category.name, searchTerm),
+            ilike(category.description, searchTerm)
+          )
+        );
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      // Count total
+      const countQuery = db.select({ count: sql<number>`count(*)` }).from(category);
+      if (whereClause) countQuery.where(whereClause);
+      const [countResult] = await countQuery;
+      const total = Number(countResult?.count || 0);
+
+      // Get categories
+      const categories = await db.query.category.findMany({
+        where: whereClause,
+        with: {
+          imageFile: true
+        },
+        orderBy: asc(category.sortOrder),
+        limit,
+        offset,
+      });
+
+      // Get product counts
+      const productCounts = await db
+        .select({
+          categoryId: product.categoryId,
+          count: sql<number>`count(*)`,
+        })
+        .from(product)
+        .groupBy(product.categoryId);
+
+      const countMap = new Map(productCounts.map(pc => [pc.categoryId, Number(pc.count)]));
+
+      const categoriesWithCounts = categories.map(cat => ({
+        ...cat,
+        productCount: countMap.get(cat.id) || 0,
+      })) as CategoryWithChildren[];
+
+      return {
+        success: true,
+        data: categoriesWithCounts,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          hasMore: page < Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      console.error(`[CategoryCRUD] GetFiltered error:`, error);
+      return { success: false, data: [], error: error instanceof Error ? error.message : "Failed to get categories" };
     }
   }
 }

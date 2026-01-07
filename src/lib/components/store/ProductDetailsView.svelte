@@ -20,7 +20,10 @@
   import { cart } from "$lib/store/cart.svelte";
   import { toast } from "svelte-sonner";
   import { Zap } from "@lucide/svelte";
+  import { cn } from "$lib/utils";
+  import { page } from "$app/state";
   import QuickPurchaseDialog from "./QuickPurchaseDialog.svelte";
+  import { useSession } from "$lib/auth-client";
 
   let showQuickPurchase = $state(false);
 
@@ -33,20 +36,31 @@
 
   let { product, reviewStats, showTabs = true, onAddToCart }: Props = $props();
 
+  const session = useSession();
   const images = $derived(product?.images || []);
   let selectedSize = $state<string | null>(null);
   let currentImageIndex = $state(0);
   let isWishlisted = $state(false);
 
+  // Sync wishlist status from page data or prop
+  $effect(() => {
+    if (product?.id) {
+      const ids = page.data.wishlistProductIds || [];
+      isWishlisted = ids.includes(product.id);
+    }
+  });
+
   // Get selected size object
   const selectedSizeData = $derived(
-    product?.sizes?.find((s: any) => s.id === selectedSize) || null
+    product?.sizes?.find((s: any) => s.id === selectedSize) || null,
   );
 
   // Calculate current price: base price + size additional price
   const currentPrice = $derived(() => {
-    const base = parseFloat(product?.basePrice || '0');
-    const additional = selectedSizeData ? parseFloat(selectedSizeData.additionalPrice || '0') : 0;
+    const base = parseFloat(product?.basePrice || "0");
+    const additional = selectedSizeData
+      ? parseFloat(selectedSizeData.additionalPrice || "0")
+      : 0;
     return base + additional;
   });
 
@@ -83,7 +97,9 @@
       };
       cart.addItem(productWithPrice, selectedSize || undefined);
       if (cartQuantity === 0) {
-        const sizeText = selectedSizeData ? ` (${selectedSizeData.size.name})` : '';
+        const sizeText = selectedSizeData
+          ? ` (${selectedSizeData.size.name})`
+          : "";
         toast.success(`${product.name}${sizeText} added to cart`, {
           position: "top-center",
         });
@@ -116,26 +132,71 @@
   };
 
   const handleShare = async () => {
+    const productUrl = `${window.location.origin}/products/${product.id}`;
     const shareData = {
       title: product.name,
       text: `${product.name} - ${formatPrice(currentPrice())}`,
-      url: window.location.href,
+      url: productUrl,
     };
 
     try {
       if (navigator.share) {
         await navigator.share(shareData);
-        toast.success('Shared successfully!');
+        toast.success("Shared successfully!");
       } else {
         // Fallback: copy link to clipboard
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copied to clipboard!');
+        await navigator.clipboard.writeText(productUrl);
+        toast.success("Link copied to clipboard!");
       }
     } catch (error: any) {
       // User cancelled share or error occurred
-      if (error.name !== 'AbortError') {
-        toast.error('Failed to share');
+      if (error.name !== "AbortError") {
+        toast.error("Failed to share");
       }
+    }
+  };
+
+  const toggleWishlist = async (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const currentUser = $session.data?.user || page.data.user;
+
+    if (!currentUser) {
+      toast.error("Please login to use wishlist", {
+        description: "You need an account to save items for later.",
+        action: {
+          label: "Login",
+          onClick: () => (window.location.href = "/auth/login"),
+        },
+      });
+      return;
+    }
+
+    const previousState = isWishlisted;
+    isWishlisted = !isWishlisted;
+
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: isWishlisted ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update wishlist");
+      }
+
+      toast.success(
+        isWishlisted ? "Added to wishlist" : "Removed from wishlist",
+        {
+          position: "bottom-right",
+        },
+      );
+    } catch (error) {
+      isWishlisted = previousState;
+      toast.error("Failed to update wishlist");
     }
   };
 </script>
@@ -353,13 +414,21 @@
 
       <div class="flex gap-3 mt-2">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          class="rounded-xl border-none bg-muted/20 hover:bg-destructive/10 hover:text-destructive"
-          onclick={() => (isWishlisted = !isWishlisted)}
+          class={cn(
+            "rounded-xl transition-all duration-300",
+            isWishlisted
+              ? "bg-primary/10 text-primary shadow-sm hover:bg-primary/20"
+              : "bg-muted/20 text-foreground hover:bg-muted/40 hover:text-primary",
+          )}
+          onclick={toggleWishlist}
         >
           <Heart
-            class="h-5 w-5"
+            class={cn(
+              "h-5 w-5 transition-transform duration-300",
+              isWishlisted && "scale-110",
+            )}
             fill={isWishlisted ? "currentColor" : "none"}
           />
         </Button>
@@ -403,62 +472,153 @@
   </div>
 </div>
 
-{#if showTabs}
-  <div class="mt-12">
-    <Tabs.Root value="description">
-      <Tabs.List
-        class="w-full justify-start overflow-x-auto bg-muted/50 p-1 rounded-xl"
+{#snippet stackedContent()}
+  <div class="space-y-12">
+    <!-- Specifications Section -->
+    <section class="space-y-4">
+      <div class="flex items-center gap-3">
+        <div class="h-8 w-1 bg-primary rounded-full"></div>
+        <h3 class="text-xl font-bold tracking-tight">Specifications</h3>
+      </div>
+      <div
+        class="prose prose-sm max-w-none dark:prose-invert text-muted-foreground bg-muted/20 p-6 rounded-xl border border-border/50 shadow-sm"
       >
-        <Tabs.Trigger value="description" class="rounded-lg"
-          >Description</Tabs.Trigger
-        >
-        <Tabs.Trigger value="features" class="rounded-lg">Features</Tabs.Trigger
-        >
-        <Tabs.Trigger value="specifications" class="rounded-lg"
-          >Specifications</Tabs.Trigger
-        >
-        <Tabs.Trigger value="reviews" class="rounded-lg"
-          >Reviews ({reviewStats?.totalReviews || 0})</Tabs.Trigger
-        >
-      </Tabs.List>
-      <Tabs.Content value="description" class="mt-6">
-        <div class="text-muted-foreground leading-relaxed">
-          {product.shortDescription || "No description available."}
-        </div>
-      </Tabs.Content>
-      <Tabs.Content value="features" class="mt-6">
-        {#if product.features && product.features.length > 0}
-          <ul class="grid gap-3 sm:grid-cols-2">
-            {#each product.features as feature}
-              <li
-                class="flex items-start gap-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border"
+        {@html product.description}
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="space-y-4">
+      <div class="flex items-center gap-3">
+        <div class="h-8 w-1 bg-primary rounded-full"></div>
+        <h3 class="text-xl font-bold tracking-tight">Key Features</h3>
+      </div>
+      {#if product.features && product.features.length > 0}
+        <div class="grid gap-3 sm:grid-cols-2">
+          {#each product.features as feature}
+            <div
+              class="flex items-start gap-3 bg-muted/20 p-4 rounded-xl border border-border/50 shadow-sm"
+            >
+              <div
+                class="mt-1 h-5 w-5 shrink-0 rounded-full bg-primary/10 flex items-center justify-center"
               >
-                <Plus class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <Plus class="h-3 w-3 text-primary" />
+              </div>
+              <div class="flex flex-col">
                 <span
-                  ><span class="font-bold text-foreground">{feature.name}:</span
-                  >
-                  {feature.value}</span
+                  class="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                  >{feature.name}</span
                 >
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <p class="text-muted-foreground">No features listed.</p>
-        {/if}
-      </Tabs.Content>
-      <Tabs.Content value="specifications" class="mt-6">
-        <div class="prose prose-sm max-w-none dark:prose-invert">
-          {@html product.description}
+                <span class="text-sm font-medium text-foreground"
+                  >{feature.value}</span
+                >
+              </div>
+            </div>
+          {/each}
         </div>
-      </Tabs.Content>
-      <Tabs.Content value="reviews" class="mt-6">
-        <p class="text-muted-foreground">
-          No reviews yet. Be the first to review!
+      {:else}
+        <div
+          class="bg-muted/10 p-6 rounded-xl border border-dashed text-center"
+        >
+          <p class="text-sm text-muted-foreground">
+            No specific features listed for this product.
+          </p>
+        </div>
+      {/if}
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="h-8 w-1 bg-primary rounded-full"></div>
+          <h3 class="text-xl font-bold tracking-tight">Customer Reviews</h3>
+        </div>
+        <Badge variant="outline" class="rounded-lg font-bold">
+          {reviewStats?.totalReviews || 0} reviews
+        </Badge>
+      </div>
+
+      <div
+        class="bg-muted/20 p-8 rounded-xl border border-border/50 text-center shadow-sm"
+      >
+        <div class="mb-4 flex justify-center">
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"
+          >
+            <Star class="h-6 w-6" />
+          </div>
+        </div>
+        <p class="text-sm text-muted-foreground font-medium italic">
+          There are no reviews yet. Be the first to share your experience with
+          this product!
         </p>
-      </Tabs.Content>
-    </Tabs.Root>
+      </div>
+    </section>
   </div>
-{/if}
+{/snippet}
+
+<div class="mt-12">
+  {#if showTabs}
+    <!-- Desktop View: Tabs -->
+    <div class="hidden lg:block">
+      <Tabs.Root value="specifications">
+        <Tabs.List
+          class="w-full justify-start overflow-x-auto bg-muted/50 p-1 rounded-xl h-10 items-stretch"
+        >
+          <Tabs.Trigger value="specifications" class="rounded-lg px-6 h-auto"
+            >Specifications</Tabs.Trigger
+          >
+          <Tabs.Trigger value="features" class="rounded-lg px-6 h-auto"
+            >Features</Tabs.Trigger
+          >
+          <Tabs.Trigger value="reviews" class="rounded-lg px-6 h-auto"
+            >Reviews ({reviewStats?.totalReviews || 0})</Tabs.Trigger
+          >
+        </Tabs.List>
+        <Tabs.Content value="specifications" class="mt-6">
+          <div class="prose prose-sm max-w-none dark:prose-invert">
+            {@html product.description}
+          </div>
+        </Tabs.Content>
+        <Tabs.Content value="features" class="mt-6">
+          {#if product.features && product.features.length > 0}
+            <ul class="grid gap-3 sm:grid-cols-2">
+              {#each product.features as feature}
+                <li
+                  class="flex items-start gap-3 text-sm text-muted-foreground bg-card p-3 rounded-lg border border-border"
+                >
+                  <Plus class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span
+                    ><span class="font-bold text-foreground"
+                      >{feature.name}:</span
+                    >
+                    {feature.value}</span
+                  >
+                </li>
+              {/each}
+            </ul>
+          {:else}
+            <p class="text-muted-foreground">No features listed.</p>
+          {/if}
+        </Tabs.Content>
+        <Tabs.Content value="reviews" class="mt-6">
+          <p class="text-muted-foreground">
+            No reviews yet. Be the first to review!
+          </p>
+        </Tabs.Content>
+      </Tabs.Root>
+    </div>
+
+    <!-- Mobile/Tablet View -->
+    <div class="lg:hidden">
+      {@render stackedContent()}
+    </div>
+  {:else}
+    <!-- Forced Stacked View (e.g. QuickView) -->
+    {@render stackedContent()}
+  {/if}
+</div>
 
 <QuickPurchaseDialog
   bind:open={showQuickPurchase}

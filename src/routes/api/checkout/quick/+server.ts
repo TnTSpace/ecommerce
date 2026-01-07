@@ -7,7 +7,7 @@ import { ProductCRUD } from '$lib/db/product';
 
 export const POST: RequestHandler = async ({ request, url }) => {
   const session = await auth.api.getSession({ headers: request.headers });
-  const { productId, email, fullName, phone, deliveryMethod, zoneId, city, shippingCost, pickupDetails } = await request.json();
+  const { productId, email, fullName, phone, deliveryMethod, zoneId, city, shippingCost, pickupDetails, paymentMethod, amountToPayNow } = await request.json();
 
   // Validate based on delivery method
   if (!productId || !email || !fullName || !phone) {
@@ -71,6 +71,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
       billingAddress: shippingAddress as any,
       deliveryMethod: isPickup ? 'pickup' : 'shipping',
       pickupDetails: isPickup ? pickupDetails : null,
+      paymentMethod: paymentMethod || 'paystack',
+      adminNotes: (paymentMethod === 'pod') ? `POD Order. Remaining balance: ${(total - (amountToPayNow || 0)).toFixed(2)}` : null,
     },
     orderItems as any
   );
@@ -87,7 +89,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
   const paymentResult = await initializeTransaction({
     email,
-    amount: Math.round(total * 100),
+    amount: Math.round((amountToPayNow || total) * 100),
     reference: paymentRef,
     callback_url: callbackUrl,
     metadata: {
@@ -95,7 +97,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
       orderNumber: order.orderNumber,
       isQuickPurchase: true,
       customerName: fullName,
-      customerPhone: phone
+      customerPhone: phone,
+      paymentMethod: paymentMethod || 'paystack'
     },
   });
 

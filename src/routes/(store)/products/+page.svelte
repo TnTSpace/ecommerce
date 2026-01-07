@@ -20,6 +20,7 @@
     Search,
     SlidersHorizontal,
     Grid3X3,
+    Grid2X2,
     List,
     X,
     Copy,
@@ -32,6 +33,7 @@
   import { toast } from "svelte-sonner";
   import {
     ProductCard,
+    ProductCardBox,
     ProductPage,
     FilterSidebar,
   } from "$lib/components/store/index.js";
@@ -48,7 +50,7 @@
   let searchQuery = $state(untrack(() => data.searchQuery || ""));
   let activeSearch = $state(untrack(() => data.searchQuery || ""));
   let sortBy = $state(untrack(() => data.filters?.sort || "newest"));
-  let viewMode = $state<"grid" | "list">("grid");
+  let viewMode = $state<"grid" | "list" | "box">("box");
   let filterOpen = $state(false);
   let searchDialogOpen = $state(false);
   let sortDrawerOpen = $state(false);
@@ -399,6 +401,13 @@
                     class="gap-1"
                   >
                     <ToggleGroupItem
+                      value="box"
+                      aria-label="Box view"
+                      class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    >
+                      <Grid2X2 class="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
                       value="grid"
                       aria-label="Grid view"
                       class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
@@ -437,6 +446,13 @@
                     class="gap-1"
                   >
                     <ToggleGroupItem
+                      value="box"
+                      aria-label="Box view"
+                      class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    >
+                      <Grid2X2 class="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
                       value="grid"
                       aria-label="Grid view"
                       class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
@@ -472,16 +488,25 @@
                 "grid gap-2",
                 viewMode === "grid"
                   ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
-                  : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
+                  : viewMode === "box"
+                    ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                    : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
               )}
             >
               {#each allProducts as product, i}
-                <ProductCard
-                  {product}
-                  {viewMode}
-                  dealLabel={product.isFeatured ? "Hot" : undefined}
-                  showOfficialBadge={i % 4 === 0}
-                />
+                {#if viewMode === "box"}
+                  <ProductCardBox
+                    {product}
+                    dealLabel={product.isFeatured ? "Hot" : undefined}
+                  />
+                {:else}
+                  <ProductCard
+                    {product}
+                    {viewMode}
+                    dealLabel={product.isFeatured ? "Hot" : undefined}
+                    showOfficialBadge={i % 4 === 0}
+                  />
+                {/if}
               {/each}
             </div>
 

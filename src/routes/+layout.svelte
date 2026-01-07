@@ -3,8 +3,6 @@
 	import { Toaster } from "svelte-sonner";
 	import { ModeWatcher } from "mode-watcher";
 	import { SiteMeta } from "$lib/constants/index";
-	import CookieConsentBtn from "$lib/components/widgets/CookieConsentBtn.svelte";
-	import WhatsAppFAB from "$lib/components/widgets/WhatsAppFAB.svelte";
 
 	let { children } = $props();
 </script>
@@ -47,7 +45,3 @@
 <Toaster richColors position="top-center" />
 <ModeWatcher disableTransitions={true} />
 {@render children?.()}
-
-<!-- Global Widgets -->
-<WhatsAppFAB />
-<CookieConsentBtn />

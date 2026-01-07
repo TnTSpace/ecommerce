@@ -1,4 +1,5 @@
 import ProductCard from "./ProductCard.svelte";
+import ProductCardBox from "./ProductCardBox.svelte";
 import ProductCardSkeleton from "./ProductCardSkeleton.svelte";
 import ProductDetailsView from "./ProductDetailsView.svelte";
 import ProductDetailsViewSkeleton from "./ProductDetailsViewSkeleton.svelte";
@@ -25,6 +26,7 @@ const FilterSidebarWithSkeleton = Object.assign(FilterSidebar, {
 
 export {
   ProductCardWithSkeleton as ProductCard,
+  ProductCardBox,
   ProductDetailsViewWithSkeleton as ProductDetailsView,
   ProductPage,
   FilterSidebarWithSkeleton as FilterSidebar,

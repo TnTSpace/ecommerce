@@ -14,6 +14,7 @@
     LayoutDashboard,
     History,
     Search,
+    Heart,
   } from "@lucide/svelte";
   import * as Drawer from "$lib/components/ui/drawer/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -172,6 +173,14 @@
               >
                 <UserIcon class="h-5 w-5 text-primary" />
                 <span class="text-xs font-medium">Account</span>
+              </a>
+              <a
+                href="/wishlist"
+                onclick={() => (drawerOpen = false)}
+                class="flex flex-col items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-accent"
+              >
+                <Heart class="h-5 w-5 text-primary" />
+                <span class="text-xs font-medium">Wishlist</span>
               </a>
               <a
                 href="/cart"

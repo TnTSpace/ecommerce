@@ -4,7 +4,7 @@
 </script>
 
 <footer class="border-t border-border bg-card">
-  <div class="center px-4 py-12">
+  <div class="center py-12">
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
       <BrandLink />
       <div>

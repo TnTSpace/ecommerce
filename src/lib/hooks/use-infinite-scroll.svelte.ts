@@ -12,38 +12,48 @@ export class InfiniteScroll {
     return InfiniteScroll.instance;
   }
 
-  static async fetchList(endpoint: string, offset: number = 0, search: string = '', params?: Record<string, string>) {
+  static async fetchList(endpoint: string, page: number = 1, search: string = '', params?: Record<string, string>) {
     const url = new URL(endpoint);
     url.searchParams.set("search", search);
-    url.searchParams.set("offset", offset.toString());
-    if (params) Object.keys(params).forEach(key => url.searchParams.set(key, params[key]));
+    url.searchParams.set("page", page.toString());
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.set(key, value);
+        }
+      });
+    }
     const response = await fetch(url);
-    let partial = await response.json() as iFetchMeta;
-    return { ...partial, lastIndex: offset * MAX_ITEMS_PER_PAGE } as iFetchMeta;
+    const result = await response.json();
+    return result;
   }
 
-  async queryEndpoint(offset: number = 1, host: string = '', field: string = '', search: string = '') {
+  async queryEndpoint(page: number = 1, host: string = '', field: string = '', search: string = '', params?: Record<string, string>) {
     const endpoint = `${host}/api/${field}`;
-    return await InfiniteScroll.fetchList(endpoint, offset, search);
+    return await InfiniteScroll.fetchList(endpoint, page, search, params);
   }
 
-  listQuery<T>(searchTerm: string, host: string = '', field: string = '') {
+  listQuery<T>(searchTerm: string, host: string = '', field: string = '', params?: Record<string, string>) {
     const self = this;
     return createInfiniteQuery({
-      queryKey: [field, searchTerm],
+      queryKey: [field, searchTerm, params],
       staleTime: 30000,
       initialPageParam: 1,
       retry: false,
       queryFn: async ({ pageParam }) => {
-        let offset = (pageParam - 1) * MAX_ITEMS_PER_PAGE;
-        const metalist = await self.queryEndpoint(offset, host, field, searchTerm);
-        const { data, meta, total } = metalist;
-        return meta ? { results: data as T[], hasMore: meta.more, pageParam, total } : { results: [], hasMore: false, pageParam, total };
+        const result = await self.queryEndpoint(pageParam, host, field, searchTerm, params);
+        const results = result.data || [];
+        const total = result.meta?.total || 0;
+        const hasMore = result.meta?.hasMore || false;
+        return { results: results as T[], hasMore, pageParam, total };
       },
       getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.pageParam + 1 : undefined,
       select: (data) => {
         let total = 0;
-        const results = data.pages.map((page) => { total = page.total; return page.results; }).flat();
+        const results = data.pages.map((page) => {
+          total = page.total;
+          return page.results;
+        }).flat();
         return { results, total };
       }
     });

@@ -71,6 +71,20 @@
       "when": 1767527644216,
       "tag": "0009_normal_boom_boom",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1767796878799,
+      "tag": "0010_natural_scorpion",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1767797357652,
+      "tag": "0011_rare_colonel_america",
+      "breakpoints": true
     }
   ]
 }

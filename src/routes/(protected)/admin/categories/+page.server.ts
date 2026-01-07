@@ -6,34 +6,7 @@ import { category, product } from '$lib/db/schema';
 import { sql, eq, asc } from 'drizzle-orm';
 
 export const load = (async () => {
-  // Get all categories with images
-  const categories = await db.query.category.findMany({
-    with: {
-      imageFile: true
-    },
-    orderBy: asc(category.sortOrder)
-  });
-
-  // Get product counts per category
-  const productCounts = await db
-    .select({
-      categoryId: product.categoryId,
-      count: sql<number>`count(*)`,
-    })
-    .from(product)
-    .groupBy(product.categoryId);
-
-  const countMap = new Map(productCounts.map(pc => [pc.categoryId, Number(pc.count)]));
-
-  // Merge categories with product counts
-  const categoriesWithCounts = categories.map(cat => ({
-    ...cat,
-    productCount: countMap.get(cat.id) || 0,
-  }));
-
-  return {
-    categories: categoriesWithCounts,
-  };
+  return {};
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {

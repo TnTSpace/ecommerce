@@ -1,8 +1,12 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import { ProductCard } from "$lib/components/store/index.js";
+  import { ProductCard, ProductCardBox } from "$lib/components/store/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
+  import {
+    ToggleGroup,
+    ToggleGroupItem,
+  } from "$lib/components/ui/toggle-group/index.js";
   import { cart } from "$lib/store/cart.svelte";
   import {
     ArrowRight,
@@ -14,11 +18,15 @@
     ChevronRight,
     History,
     Package,
+    Grid3X3,
+    Grid2X2,
+    List,
   } from "@lucide/svelte";
   import { navigating } from "$app/stores";
   import { onMount, untrack } from "svelte";
   import { MAX_ITEMS_PER_PAGE } from "$lib/constants/index";
   import { Loader2 } from "@lucide/svelte";
+  import { cn } from "$lib/utils.js";
   import Hero from "./components/Hero.svelte";
 
   let { data }: PageProps = $props();
@@ -31,6 +39,11 @@
   let allNewArrivals = $state(untrack(() => data.newArrivals || []));
   let currentPage = $state(untrack(() => data.newArrivalsMeta?.page || 1));
   let totalPages = $state(untrack(() => data.newArrivalsMeta?.totalPages || 1));
+  // View Modes State
+  let recentlyViewedMode = $state<"grid" | "list" | "box">("grid");
+  let trendingMode = $state<"grid" | "list" | "box">("box");
+  let newArrivalsMode = $state<"grid" | "list" | "box">("box");
+
   let isLoadingMore = $state(false);
   let observerTarget = $state<HTMLElement | null>(null);
 
@@ -82,7 +95,7 @@
 
   <!-- Categories Highlights -->
   <section class="center mx-auto px-2">
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2 justify-between mb-8">
       <div>
         <h2 class="text-3xl font-bold">
           Featured <span class="text-primary">Categories</span>
@@ -91,7 +104,7 @@
           Explore our most popular departments
         </p>
       </div>
-      <Button href="/categories" variant="ghost" size="sm" class="font-bold">
+      <Button href="/categories" variant="outline" size="sm" class="font-bold self-start justify-start">
         View All <ChevronRight class="ml-1 h-4 w-4" />
       </Button>
     </div>
@@ -130,32 +143,77 @@
   {#if recentlyViewed.length > 0}
     <section class="bg-muted/30 py-16">
       <div class="center mx-auto px-2">
-        <div class="flex items-center gap-3 mb-8">
-          <div
-            class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"
-          >
-            <History class="h-5 w-5" />
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center gap-2 mb-8">
+          <div class="flex items-center gap-2">
+            <div
+              class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"
+            >
+              <History class="h-5 w-5" />
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold">
+                Recently <span class="text-primary">Viewed</span>
+              </h2>
+              <p class="text-xs text-muted-foreground">
+                Pick up where you left off
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 class="text-2xl font-bold">
-              Recently <span class="text-primary">Viewed</span>
-            </h2>
-            <p class="text-xs text-muted-foreground">
-              Pick up where you left off
-            </p>
+          <div
+            class="sm:ml-auto flex items-center p-1 rounded-xl bg-muted/50 border border-border w-fit"
+          >
+            <ToggleGroup
+              type="single"
+              value={recentlyViewedMode}
+              onValueChange={(v) => v && (recentlyViewedMode = v as any)}
+              class="gap-1"
+            >
+              <ToggleGroupItem
+                value="box"
+                aria-label="Box view"
+                class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+              >
+                <Grid2X2 class="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="grid"
+                aria-label="Grid view"
+                class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+              >
+                <Grid3X3 class="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="list"
+                aria-label="List view"
+                class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+              >
+                <List class="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </div>
 
         <div
-          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2"
+          class={cn(
+            "grid gap-2",
+            recentlyViewedMode === "grid"
+              ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
+              : recentlyViewedMode === "box"
+                ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+                : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
+          )}
         >
           {#if $navigating}
             {#each Array(recentlyViewed.slice(0, 6).length || 6) as _}
-              <ProductCard.Skeleton />
+              <ProductCard.Skeleton viewMode={recentlyViewedMode} />
             {/each}
           {:else}
             {#each recentlyViewed.slice(0, 6) as product}
-              <ProductCard {product} />
+              {#if recentlyViewedMode === "box"}
+                <ProductCardBox {product} />
+              {:else}
+                <ProductCard {product} viewMode={recentlyViewedMode} />
+              {/if}
             {/each}
           {/if}
         </div>
@@ -165,7 +223,7 @@
 
   <!-- Featured Products -->
   <section class="center mx-auto px-2">
-    <div class="flex items-center justify-between mb-10">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2 justify-between mb-10">
       <div>
         <h2 class="text-3xl font-bold">
           Trending <span class="text-primary">Now</span>
@@ -174,21 +232,74 @@
           Our best-selling and featured items
         </p>
       </div>
-      <Button href="/products" variant="outline" class="rounded-xl font-bold">
-        View All Products
-      </Button>
+      <div class="flex items-center gap-2">
+        <div
+          class="flex items-center p-1 rounded-xl bg-muted/50 border border-border"
+        >
+          <ToggleGroup
+            type="single"
+            value={trendingMode}
+            onValueChange={(v) => v && (trendingMode = v as any)}
+            class="gap-1"
+          >
+            <ToggleGroupItem
+              value="box"
+              aria-label="Box view"
+              class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            >
+              <Grid2X2 class="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="grid"
+              aria-label="Grid view"
+              class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            >
+              <Grid3X3 class="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="list"
+              aria-label="List view"
+              class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            >
+              <List class="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <Button
+          href="/products"
+          variant="outline"
+          class="hidden sm:flex rounded-xl font-bold"
+        >
+          View All
+        </Button>
+      </div>
     </div>
 
     <div
-      class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2"
+      class={cn(
+        "grid gap-2",
+        trendingMode === "grid"
+          ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
+          : trendingMode === "box"
+            ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+            : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
+      )}
     >
       {#if $navigating}
         {#each Array(featuredProducts.length || 6) as _}
-          <ProductCard.Skeleton />
+          <ProductCard.Skeleton viewMode={trendingMode} />
         {/each}
       {:else}
         {#each featuredProducts as product}
-          <ProductCard {product} dealLabel="Trending" />
+          {#if trendingMode === "box"}
+            <ProductCardBox {product} dealLabel="Trending" />
+          {:else}
+            <ProductCard
+              {product}
+              viewMode={trendingMode}
+              dealLabel="Trending"
+            />
+          {/if}
         {/each}
       {/if}
     </div>
@@ -227,25 +338,68 @@
 
   <!-- New Arrivals -->
   <section class="center mx-auto px-2">
-    <div class="flex items-center justify-between mb-10">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2 justify-between mb-10">
       <div>
         <h2 class="text-3xl font-bold">
           New <span class="text-primary">Arrivals</span>
         </h2>
         <p class="text-muted-foreground mt-1">Fresh from the warehouse</p>
       </div>
+      <div
+        class="flex items-center p-1 rounded-xl bg-muted/50 border border-border w-fit"
+      >
+        <ToggleGroup
+          type="single"
+          value={newArrivalsMode}
+          onValueChange={(v) => v && (newArrivalsMode = v as any)}
+          class="gap-1"
+        >
+          <ToggleGroupItem
+            value="box"
+            aria-label="Box view"
+            class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+          >
+            <Grid2X2 class="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="grid"
+            aria-label="Grid view"
+            class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+          >
+            <Grid3X3 class="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="list"
+            aria-label="List view"
+            class="rounded-lg h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+          >
+            <List class="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
     </div>
 
     <div
-      class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2"
+      class={cn(
+        "grid gap-2",
+        newArrivalsMode === "grid"
+          ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
+          : newArrivalsMode === "box"
+            ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+            : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
+      )}
     >
       {#if $navigating}
         {#each Array(allNewArrivals.length || 6) as _}
-          <ProductCard.Skeleton />
+          <ProductCard.Skeleton viewMode={newArrivalsMode} />
         {/each}
       {:else}
         {#each allNewArrivals as product}
-          <ProductCard {product} />
+          {#if newArrivalsMode === "box"}
+            <ProductCardBox {product} />
+          {:else}
+            <ProductCard {product} viewMode={newArrivalsMode} />
+          {/if}
         {/each}
       {/if}
     </div>

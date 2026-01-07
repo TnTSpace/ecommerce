@@ -19,6 +19,8 @@
   import { cn } from "$lib/utils.js";
   import QuickView from "./QuickView.svelte";
   import QuickPurchaseDialog from "./QuickPurchaseDialog.svelte";
+  import { useSession } from "$lib/auth-client";
+  import { page } from "$app/state";
 
   interface Props {
     class?: string;
@@ -35,20 +37,36 @@
       reviewCount?: number;
       sizes?: any[];
     };
-    viewMode?: "grid" | "list";
+    viewMode?: "grid" | "list" | "box";
     dealLabel?: string;
     showOfficialBadge?: boolean;
+    isWishlisted?: boolean;
+    onWishlistToggle?: (isWishlisted: boolean) => void;
   }
 
+  let props: Props = $props();
   let {
     class: className = "",
     product,
     viewMode = "grid",
     dealLabel,
     showOfficialBadge = false,
-  }: Props = $props();
+    onWishlistToggle,
+  } = props;
 
-  let isWishlisted = $state(false);
+  const session = useSession();
+  let isWishlisted = $state(props.isWishlisted ?? false);
+
+  $effect(() => {
+    // Sync with prop if provided
+    if (props.isWishlisted !== undefined) {
+      isWishlisted = props.isWishlisted;
+    } else if (product?.id) {
+      // Otherwise sync with global wishlist data from layout
+      const ids = page.data.wishlistProductIds || [];
+      isWishlisted = ids.includes(product.id);
+    }
+  });
   let isHovered = $state(false);
   let showQuickView = $state(false);
   let showQuickPurchase = $state(false);
@@ -73,10 +91,50 @@
     return Math.round(((original - current) / original) * 100);
   });
 
-  const toggleWishlist = (e: MouseEvent) => {
+  const toggleWishlist = async (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const currentUser = $session.data?.user || page.data.user;
+
+    if (!currentUser) {
+      toast.error("Please login to use wishlist", {
+        description: "You need an account to save items for later.",
+        action: {
+          label: "Login",
+          onClick: () => (window.location.href = "/auth/login"),
+        },
+      });
+      return;
+    }
+
+    const previousState = isWishlisted;
     isWishlisted = !isWishlisted;
+
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: isWishlisted ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update wishlist");
+      }
+
+      toast.success(
+        isWishlisted ? "Added to wishlist" : "Removed from wishlist",
+        {
+          position: "bottom-right",
+        },
+      );
+
+      onWishlistToggle?.(isWishlisted);
+    } catch (error) {
+      isWishlisted = previousState;
+      toast.error("Failed to update wishlist");
+    }
   };
 
   const addToCart = async (e: MouseEvent) => {
@@ -213,7 +271,7 @@
     <Button
       variant="outline"
       size="icon"
-      class="rounded-xl border-none bg-muted/20 hover:bg-primary/10 hover:text-primary"
+      class="border-none bg-muted/20 hover:bg-primary/10 hover:text-primary"
       onclick={openQuickView}
       title="Quick View"
     >
@@ -222,7 +280,7 @@
     <Button
       variant="default"
       size="icon"
-      class="rounded-xl shadow-lg shadow-primary/20"
+      class="shadow-lg shadow-primary/20"
       onclick={(e) => {
         e.preventDefault();
         showQuickPurchase = true;
@@ -232,18 +290,24 @@
       <Zap class="h-4 w-4 fill-current" />
     </Button>
     <Button
-      variant="outline"
+      variant="ghost"
       size="icon"
       class={cn(
-        "rounded-xl border-none bg-muted/20 transition-colors",
+        "rounded-xl transition-all duration-300",
         isWishlisted
-          ? "bg-destructive/5 text-destructive"
-          : "hover:bg-destructive/10 hover:text-destructive",
+          ? "bg-primary/10 text-primary shadow-sm hover:bg-primary/20"
+          : "bg-background/20 backdrop-blur-md text-foreground hover:bg-background/40 hover:text-primary",
       )}
       onclick={toggleWishlist}
-      title="Wishlist"
+      title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
     >
-      <Heart class="h-4 w-4" fill={isWishlisted ? "currentColor" : "none"} />
+      <Heart
+        class={cn(
+          "h-5 w-5 transition-transform duration-300",
+          isWishlisted && "scale-110",
+        )}
+        fill={isWishlisted ? "currentColor" : "none"}
+      />
     </Button>
   </div>
 {/snippet}
