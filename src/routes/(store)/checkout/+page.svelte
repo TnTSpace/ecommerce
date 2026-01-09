@@ -110,7 +110,7 @@
   const total = $derived(subtotal + shippingCost);
 </script>
 
-<div class="center mx-auto max-w-7xl py-6">
+<div class="center py-6">
   <h1 class="mb-6 text-2xl font-bold text-foreground">Checkout</h1>
 
   <form

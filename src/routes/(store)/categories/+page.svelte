@@ -8,7 +8,7 @@
   const categories = $state(data.categories || []);
 </script>
 
-<div class="center mx-auto max-w-7xl px-4 py-8">
+<div class="center px-4 py-8">
   <!-- Hero Section -->
   <div
     class="relative overflow-hidden rounded-xl border border-primary/10 bg-gradient-to-br from-primary/10 via-background to-primary/5 shadow-lg mb-12"

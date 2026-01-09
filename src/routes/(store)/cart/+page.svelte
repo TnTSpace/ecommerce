@@ -43,7 +43,6 @@
     toast.success("Item removed from cart");
   }
 
-
   const items = $derived(cart.items);
   const isInitialLoading = $derived(!cart.isReady);
   const isUpdating = $derived(cart.isUpdating);
@@ -54,7 +53,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50/50 pb-20 dark:bg-slate-950/50">
-  <div class="center mx-auto max-w-7xl px-2 p-2">
+  <div class="center px-2 p-2">
     <!-- Header -->
     <div class="mb-8 flex items-end justify-between">
       <div class="space-y-1">
@@ -258,7 +257,6 @@
 
         <!-- Summary & Shipping -->
         <div class="lg:col-span-4 space-y-6">
-
           <!-- Order Summary -->
           <Card
             class="border-none shadow-lg bg-white/90 dark:bg-slate-900/90 overflow-hidden rounded-xl py-0"
@@ -424,7 +422,6 @@
     {/if}
   </div>
 </div>
-
 
 <style>
   /* Custom glassmorphism and animations */

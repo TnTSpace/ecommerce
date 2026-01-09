@@ -19,7 +19,7 @@
   let isSubmitting = $state(false);
 </script>
 
-<div class="center mx-auto max-w-7xl px-4 py-12 md:py-20">
+<div class="center px-4 py-12 md:py-20">
   <div class="grid gap-16 lg:grid-cols-2 lg:items-center">
     <!-- Left Column: Content & Info -->
     <div class="space-y-8 animate-in">
@@ -110,7 +110,10 @@
             <Button
               size="sm"
               variant="outline"
-              class="h-8 font-bold text-xs mt-1">Start Chat</Button
+              href={`https://wa.me/${COMPANY_INFO.phone.replace("+", "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-1">Start Chat</Button
             >
           </CardContent>
         </Card>

@@ -97,7 +97,7 @@
 <div class="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 pb-20">
   <!-- Hero Section -->
   <section
-    class="relative overflow-hidden bg-primary px-6 py-20 text-center text-primary-foreground"
+    class="relative overflow-hidden bg-primary px-2 py-20 text-center text-primary-foreground"
   >
     <div class="absolute inset-0 opacity-10">
       <div
@@ -108,14 +108,14 @@
       ></div>
     </div>
 
-    <div class="relative mx-auto max-w-3xl">
+    <div class="relative center">
       <Badge
         variant="outline"
         class="mb-4 border-primary-foreground/20 text-primary-foreground/80 uppercase tracking-widest px-4 py-1 rounded-full"
         >Support Center</Badge
       >
       <h1
-        class="mb-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl"
+        class="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
       >
         How can we help you?
       </h1>
@@ -142,18 +142,17 @@
     <!-- Category Tabs -->
     <div class="mb-12 flex flex-wrap justify-center gap-3">
       {#each categories as cat}
-        <button
+        <Button
           onclick={() => (activeTab = cat.id)}
+          variant={activeTab === cat.id ? "default" : "outline"}
           class={cn(
-            "flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all active:scale-95",
-            activeTab === cat.id
-              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-              : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800",
+            "gap-2",
+            activeTab === cat.id && "shadow-lg shadow-primary/20",
           )}
         >
           <cat.icon class="h-4 w-4" />
           {cat.label}
-        </button>
+        </Button>
       {/each}
     </div>
 
@@ -231,7 +230,7 @@
             <MessageCircle class="h-8 w-8 text-white" />
           </div>
         </div>
-        <h2 class="mb-4 text-3xl font-extrabold tracking-tight">
+        <h2 class="mb-4 text-3xl font-bold tracking-tight">
           Still have questions?
         </h2>
         <p class="mb-8 text-white/70">
@@ -243,13 +242,13 @@
         >
           <Button
             href="/contact"
-            class="h-12 rounded-xl bg-white px-8 font-bold text-slate-900 hover:bg-white/90"
+            class="rounded-xl bg-white font-bold text-slate-900 hover:bg-white/90"
           >
             Contact Us
           </Button>
           <Button
             variant="outline"
-            class="h-12 rounded-xl border-white/20 px-8 font-bold text-white hover:bg-white/10"
+            class="rounded-xl border-white/20 font-bold text-white hover:bg-white/10"
           >
             Email Support
           </Button>

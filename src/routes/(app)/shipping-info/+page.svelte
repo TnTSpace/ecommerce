@@ -16,6 +16,7 @@
   import { Card, CardContent } from "$lib/components/ui/card";
   import JumiaLogo from "$lib/components/icons/JumiaLogo.svelte";
   import { COMPANY_INFO } from "$lib/constants/index";
+  import JumiaLogoWhite from "$lib/components/icons/JumiaLogoWhite.svelte";
 
   const benefits = [
     {
@@ -68,7 +69,7 @@
 
 <div class="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 pb-20">
   <!-- Hero Section -->
-  <section class="relative overflow-hidden bg-slate-900 px-6 py-24 text-white">
+  <section class="relative overflow-hidden bg-slate-900 px-2 py-24 text-white">
     <div class="absolute inset-0 opacity-20">
       <div
         class="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-primary/30 blur-[120px]"
@@ -78,7 +79,7 @@
       ></div>
     </div>
 
-    <div class="relative mx-auto max-w-7xl">
+    <div class="relative center">
       <div class="grid gap-12 lg:grid-cols-2 lg:items-center">
         <div class="space-y-8">
           <Badge
@@ -86,9 +87,7 @@
             class="border-primary/50 text-primary uppercase tracking-widest px-4 py-1 rounded-full bg-primary/10"
             >Logistics Excellence</Badge
           >
-          <h1
-            class="text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl"
-          >
+          <h1 class="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
             Swift & Secure <br />
             <span class="text-primary">Delivery Services</span>
           </h1>
@@ -98,20 +97,17 @@
             tracked delivery for every order.
           </p>
           <div class="flex flex-wrap gap-4">
+            <Button href="/products">Start Shopping</Button>
             <Button
-              href="/products"
-              class="h-14 rounded-2xl px-8 font-extrabold shadow-2xl shadow-primary/30 grayscale hover:grayscale-0"
+              variant="outline"
+              href="https://www.jumia.com.ng/sp-jumia-delivery/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
             >
-              Start Shopping <ArrowRight class="ml-2 h-5 w-5" />
+              <JumiaLogoWhite class="!h-4 !w-16 shrink-0" />
+              <span class="whitespace-nowrap">Authorized Partner</span>
             </Button>
-            <div
-              class="flex items-center gap-3 rounded-2xl bg-white/5 border border-white/10 px-6 py-3 backdrop-blur-sm"
-            >
-              <JumiaLogo class="h-5" />
-              <span class="text-sm font-bold text-white/80"
-                >Authorized Partner</span
-              >
-            </div>
           </div>
         </div>
 
@@ -130,11 +126,11 @@
   </section>
 
   <!-- Benefits -->
-  <section class="px-6 py-20">
-    <div class="mx-auto max-w-7xl">
+  <section class="px-2 py-20">
+    <div class="center">
       <div class="mb-16 text-center">
         <h2
-          class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl"
+          class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl"
         >
           Why choose our shipping?
         </h2>
@@ -165,13 +161,13 @@
 
   <!-- How it Works -->
   <section
-    class="bg-white dark:bg-slate-900 px-6 py-24 border-y border-slate-200 dark:border-slate-800"
+    class="bg-white dark:bg-slate-900 px-2 py-12 border-y border-slate-200 dark:border-slate-800"
   >
-    <div class="mx-auto max-w-7xl">
+    <div class="center w-full">
       <div class="grid gap-16 lg:grid-cols-2">
         <div>
           <h2
-            class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl"
+            class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl"
           >
             Seamless Logistic Journey
           </h2>
@@ -185,7 +181,7 @@
             {#each steps as step, i}
               <div class="flex gap-6">
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white"
                 >
                   {i + 1}
                 </div>
@@ -207,7 +203,7 @@
         >
           <div class="mb-8 flex items-center gap-3">
             <Info class="h-6 w-6 text-primary" />
-            <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white">
+            <h3 class="text-2xl font-bold text-slate-900 dark:text-white">
               Delivery Timelines
             </h3>
           </div>
@@ -227,7 +223,7 @@
                 >
               </div>
               <span
-                class="rounded-lg bg-green-500/10 px-3 py-1 text-sm font-black text-green-600"
+                class="rounded-lg bg-green-500/10 px-3 py-1 text-sm font-bold text-green-600"
                 >1 - 2 Days</span
               >
             </div>
@@ -246,7 +242,7 @@
                 >
               </div>
               <span
-                class="rounded-lg bg-blue-500/10 px-3 py-1 text-sm font-black text-blue-600"
+                class="rounded-lg bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-600"
                 >3 - 4 Days</span
               >
             </div>
@@ -265,7 +261,7 @@
                 >
               </div>
               <span
-                class="rounded-lg bg-orange-500/10 px-3 py-1 text-sm font-black text-orange-600"
+                class="rounded-lg bg-orange-500/10 px-3 py-1 text-sm font-bold text-orange-600"
                 >5 - 7 Days</span
               >
             </div>
@@ -287,10 +283,10 @@
   </section>
 
   <!-- Help Desk -->
-  <section class="px-6 py-20">
+  <section class="px-2 py-20">
     <div class="mx-auto max-w-4xl text-center">
       <h2
-        class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white"
+        class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
       >
         Need delivery assistance?
       </h2>
@@ -315,7 +311,7 @@
             >
               Call Us
             </p>
-            <p class="text-lg font-black text-slate-900 dark:text-white">
+            <p class="text-lg font-bold text-slate-900 dark:text-white">
               {COMPANY_INFO.phone}
             </p>
           </div>
@@ -336,7 +332,7 @@
             >
               Email Us
             </p>
-            <p class="text-lg font-black text-slate-900 dark:text-white">
+            <p class="text-lg font-bold text-slate-900 dark:text-white">
               {COMPANY_INFO.email}
             </p>
           </div>
