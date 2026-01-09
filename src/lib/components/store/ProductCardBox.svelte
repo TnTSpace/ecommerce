@@ -7,8 +7,9 @@
 
   import { useSession } from "$lib/auth-client";
   import { toast } from "svelte-sonner";
-  import { Heart } from "@lucide/svelte";
+  import { Heart, Eye } from "@lucide/svelte";
   import { page } from "$app/state";
+  import { goto } from "$app/navigation";
 
   interface Props {
     product: any;
@@ -115,58 +116,61 @@
 </script>
 
 <div
-  role="button"
-  tabindex="0"
-  onclick={openQuickView}
-  onkeydown={(e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      openQuickView(e as any);
-    }
-  }}
-  class="group relative aspect-square w-full overflow-hidden rounded-xl border bg-card text-left transition-all hover:shadow-lg cursor-pointer active:scale-[0.98]"
+  class="group relative aspect-square w-full overflow-hidden rounded-xl border bg-card text-left transition-all hover:shadow-lg"
 >
-  <!-- Image Layer -->
-  <div class="absolute inset-0 z-0">
-    {#if primaryImage && primaryImage !== "/placeholder-product.jpg"}
-      <img
-        src={primaryImage}
-        alt={product.name}
-        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-      />
-    {:else}
+  <!-- Clickable Image Layer -->
+  <a href="/products/{product.id}" class="absolute inset-0 z-0 block">
+    <!-- Image Layer -->
+    <div class="absolute inset-0 z-0">
+      {#if primaryImage && primaryImage !== "/placeholder-product.jpg"}
+        <img
+          src={primaryImage}
+          alt={product.name}
+          class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+      {:else}
+        <div
+          class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5"
+        >
+          <Package class="h-12 w-12 text-primary/20" />
+        </div>
+      {/if}
+
+      <!-- Gradient Overlay -->
       <div
-        class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5"
-      >
-        <Package class="h-12 w-12 text-primary/20" />
-      </div>
-    {/if}
+        class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"
+      ></div>
+    </div>
+  </a>
 
-    <!-- Gradient Overlay -->
-    <div
-      class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"
-    ></div>
-  </div>
-
-  <!-- Wishlist Button -->
-  <button
-    onclick={toggleWishlist}
-    class={cn(
-      "absolute right-2 top-2 z-20 flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300",
-      isWishlisted
-        ? "bg-primary/20 backdrop-blur-md text-primary shadow-sm"
-        : "bg-black/20 backdrop-blur-md text-white hover:bg-black/40 hover:scale-105",
-    )}
-    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-  >
-    <Heart
+  <!-- Action Buttons -->
+  <div class="absolute right-2 top-2 z-20 flex flex-col gap-2">
+    <button
+      onclick={toggleWishlist}
       class={cn(
-        "h-5 w-5 transition-transform duration-300",
-        isWishlisted && "scale-110",
+        "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300",
+        isWishlisted
+          ? "bg-primary/20 backdrop-blur-md text-primary shadow-sm"
+          : "bg-black/20 backdrop-blur-md text-white hover:bg-black/40 hover:scale-105",
       )}
-      fill={isWishlisted ? "currentColor" : "none"}
-    />
-  </button>
+      title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+    >
+      <Heart
+        class={cn(
+          "h-5 w-5 transition-transform duration-300",
+          isWishlisted && "scale-110",
+        )}
+        fill={isWishlisted ? "currentColor" : "none"}
+      />
+    </button>
+    <button
+      onclick={openQuickView}
+      class="flex h-9 w-9 items-center justify-center rounded-xl bg-black/20 backdrop-blur-md text-white hover:bg-black/40 hover:scale-105 transition-all duration-300"
+      title="Quick View"
+    >
+      <Eye class="h-5 w-5" />
+    </button>
+  </div>
 
   <!-- Bottom Content -->
   <div class="absolute bottom-0 left-0 z-10 w-full p-2 pointer-events-none">

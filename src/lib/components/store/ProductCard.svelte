@@ -48,11 +48,13 @@
   let {
     class: className = "",
     product,
-    viewMode = "grid",
     dealLabel,
     showOfficialBadge = false,
     onWishlistToggle,
   } = props;
+
+  // Make viewMode reactive
+  const viewMode = $derived(props.viewMode ?? "grid");
 
   const session = useSession();
   let isWishlisted = $state(props.isWishlisted ?? false);
@@ -316,7 +318,7 @@
   class={cn(
     "group relative overflow-hidden bg-card transition-all duration-300 hover:shadow-lg",
     viewMode === "list"
-      ? "flex flex-col rounded-xl border border-border"
+      ? "flex flex-row rounded-xl border border-border"
       : "flex flex-col rounded-xl border border-border",
     className,
   )}
@@ -324,19 +326,14 @@
   onmouseleave={() => (isHovered = false)}
 >
   <!-- Main Content Area (Image + Info) -->
-  <div
-    class={cn(
-      "flex flex-1",
-      viewMode === "list" ? "flex-row border-b border-border/50" : "flex-col",
-    )}
-  >
+  <div class={cn("flex flex-1", viewMode === "list" ? "flex-row" : "flex-col")}>
     <!-- Image Area -->
     <a
       href="/products/{product.id}"
       class={cn(
         "relative overflow-hidden bg-muted/50 transition-colors hover:bg-muted",
         viewMode === "list"
-          ? "w-32 flex-shrink-0 sm:w-40"
+          ? "w-28 h-28 flex-shrink-0 sm:w-36 sm:h-36"
           : "aspect-square w-full",
       )}
     >
@@ -380,7 +377,12 @@
     </a>
 
     <!-- Info Area -->
-    <div class="flex min-w-0 flex-1 flex-col p-2 pb-0 sm:pb-0">
+    <div
+      class={cn(
+        "flex min-w-0 flex-1 flex-col",
+        viewMode === "list" ? "p-3 justify-center" : "p-2 pb-0",
+      )}
+    >
       <!-- Badge Section -->
       <div class="flex min-h-[1.25rem] flex-wrap items-center gap-2">
         {#if product.category}
@@ -420,13 +422,22 @@
 
       <!-- Rating (List view specific info row) -->
       {#if viewMode === "list"}
-        <div class="mt-2 flex items-center gap-3">
+        <div class="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
           {#if product.averageRating}
             <div class="flex items-center gap-1">
-              <Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
-              <span class="text-[10px] font-bold text-foreground">
+              <Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
+              <span class="font-bold text-foreground">
                 {product.averageRating.toFixed(1)}
               </span>
+              {#if product.reviewCount}
+                <span class="text-xs">({product.reviewCount} reviews)</span>
+              {/if}
+            </div>
+          {/if}
+          {#if product.stockQuantity > 0}
+            <div class="flex items-center gap-1">
+              <Truck class="h-4 w-4 text-primary" />
+              <span class="text-xs">In Stock</span>
             </div>
           {/if}
         </div>
@@ -434,17 +445,36 @@
     </div>
   </div>
 
-  <!-- Action Area (Bottom for both, but different inner layouts) -->
-  <div class="p-2">
-    {#if viewMode === "list"}
-      <div class="flex items-center justify-between gap-4">
-        {@render actionButtons()}
-        <div class="flex-1 max-w-[150px]">
-          {@render quantityWidget(true)}
-        </div>
-      </div>
-    {:else}
-      <!-- Grid Mode Actions -->
+  <!-- Action Area -->
+  {#if viewMode === "list"}
+    <!-- List Mode: Actions on the right side -->
+    <div class="flex items-center gap-2 p-3 pl-0">
+      {@render quantityWidget(true)}
+      <Button
+        variant="default"
+        size="icon"
+        class="shadow-lg shadow-primary/20"
+        onclick={(e) => {
+          e.preventDefault();
+          showQuickPurchase = true;
+        }}
+        title="Buy Now"
+      >
+        <Zap class="h-4 w-4 fill-current" />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        class="border-none bg-muted/20 hover:bg-primary/10 hover:text-primary"
+        onclick={openQuickView}
+        title="Quick View"
+      >
+        <Eye class="h-4 w-4" />
+      </Button>
+    </div>
+  {:else}
+    <!-- Grid Mode Actions -->
+    <div class="p-2">
       <div class="flex flex-col gap-2">
         <!-- Row 1: Quick View, Buy Now, Wishlist, Rating -->
         <div class="flex items-center justify-between">
@@ -465,8 +495,8 @@
           {@render quantityWidget(false)}
         </div>
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
 </article>
 
 <QuickView
